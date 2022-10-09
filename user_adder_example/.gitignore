@@ -1,0 +1,10 @@
+/.idea/
+/precheck_results/
+*/tmp
+*/*/tmp
+*.hex*
+*.lst
+*.vcd
+*.gtkw
+/openlane/user_adder/runs/*
+/dependencies
