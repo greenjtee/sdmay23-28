@@ -1,0 +1,16 @@
+build:
+  tags: [docker]
+  stage: build
+  image: docker:20.10.16
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  services:
+    - name: docker:20.10.16-dind
+  script:
+    - apk update
+    - apk add git make python3 py3-pip
+    # - chmod +x ./setup.sh
+    - cd user_adder_example
+    - source ./setup.sh
+    - make setup
+    - make user_adder
