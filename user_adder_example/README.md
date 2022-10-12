@@ -20,7 +20,7 @@ In order to setup and harden, you must have
 - Python 3.6+ with PIP
 
 ## Getting started
-To setup your environment, you must run ``source ./setup.sh script``. This will create a new directory called "dependencies" and export environment variables needed by the project
+To setup your environment, you must run ``source ./setup.sh``. This will create a new directory called "dependencies" and export environment variables needed by the project
 Run ``make setup`` to fetch the required openlane resources for hardening.
 
 ## Hardening
