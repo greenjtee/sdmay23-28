@@ -6,4 +6,15 @@
 *.lst
 *.vcd
 *.gtkw
+
 dependencies
+def
+gds
+lef
+mag
+maglef
+sdc
+sdf
+signoff
+spef
+spi
