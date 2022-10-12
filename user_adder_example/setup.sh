@@ -11,4 +11,4 @@ export PDK_ROOT=$(pwd)/dependencies/pdks # you need to export this whenever you 
 # export the PDK variant depending on your shuttle, if you don't know leave it to the default
 export PDK=sky130B
 
-make setup
+# make setup

@@ -12,7 +12,7 @@
 <!-- Refer to [README](docs/source/index.rst) for this sample project documentation.  -->
 
 ## Introduction
-This project builds on the Caravel User Project, adding a simple adder that can be used for testing an environment setup.
+This project builds on the Caravel User Project, adding a simple adder that can be used for testing an environment setup. Every time you open a new shell, you must initialize the environment variables manually or by running "shell.sh" from this directory.
 
 ## Requirements
 In order to setup and harden, you must have
@@ -20,7 +20,8 @@ In order to setup and harden, you must have
 - Python 3.6+ with PIP
 
 ## Getting started
-To setup your environment, you must run the setup.sh script. This will create a new directory called "dependencies", export environment variables needed by the project, and finally run ``make setup`` to fetch the required openlane resources for hardening.
+To setup your environment, you must run the setup.sh script. This will create a new directory called "dependencies" and export environment variables needed by the project
+Run ``make setup`` to fetch the required openlane resources for hardening.
 
 ## Hardening
 To harden the user_adder, run ``make user_adder``.
