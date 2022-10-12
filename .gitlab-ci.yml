@@ -1,14 +1,14 @@
 build:
   tags: [docker]
   stage: build
-  image: docker:20.10.16
-  variables:
-    DOCKER_TLS_CERTDIR: "/certs"
-  services:
-    - name: docker:20.10.16-dind
+  image: alpine:3.16.2
+  # variables:
+  #   DOCKER_TLS_CERTDIR: "/certs"
+  # services:
+  #   - name: docker:20.10.16-dind
   script:
     - apk update
-    - apk add git make python3 py3-pip
+    - apk add git make python3 py3-pip docker openrc
     # - chmod +x ./setup.sh
     - cd user_adder_example
     - source ./setup.sh
