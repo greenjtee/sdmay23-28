@@ -25,6 +25,7 @@ build:
     - make user_adder
     - make pdk-with-volare
     - make simenv
+    - make precheck
     - make user_project_wrapper
 
 precheck:
@@ -35,7 +36,6 @@ precheck:
     - cd user_adder_example
     - source ./setup.sh
     - export PRECHECK_ROOT=/root/mpw_precheck
-    - make precheck
     - cd $PRECHECK_ROOT && python3 mpw_precheck.py --input_directory $(pwd) --pdk_path $PDK_ROOT/$PDK
     # - make run-precheck
     # - make verify-adder_test1-rtl
