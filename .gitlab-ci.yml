@@ -11,15 +11,15 @@ build:
   services:
     - name: docker:20.10.16-dind
   script:
-    - export USER=root
     - apk update
     - apk add git make python3 py3-pip
     - cd user_adder_example
     - source ./setup.sh
-    - cd $(PRECHECK_ROOT) && python3 mpw_precheck.py --input_directory $(INPUT_DIRECTORY) --pdk_path $(PDK_ROOT)/$(PDK)
+    - make precheck
     - make setup
     - make install
     - make openlane
+    - cd $(PRECHECK_ROOT) && python3 mpw_precheck.py --input_directory $(INPUT_DIRECTORY) --pdk_path $(PDK_ROOT)/$(PDK)
     - make user_adder
     - make pdk-with-volare
     - make simenv
@@ -27,5 +27,4 @@ build:
     # - make verify-adder_test1-gl
     # - make user_adder
     - make user_project_wrapper
-    - make precheck
-    - make run-precheck
+    # - make run-precheck
