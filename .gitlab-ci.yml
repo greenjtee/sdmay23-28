@@ -32,6 +32,7 @@ precheck:
   stage: test
   image: efabless/mpw_precheck:latest
   script:
+    - cd user_adder_example
     - make precheck
     - cd $PRECHECK_ROOT && python3 mpw_precheck.py --input_directory $(pwd) --pdk_path $PDK_ROOT/$PDK
     # - make run-precheck
