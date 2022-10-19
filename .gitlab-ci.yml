@@ -16,9 +16,9 @@ build:
     - apk add git make python3 py3-pip
     - cd user_adder_example
     - source ./setup.sh
+    - make install
     - make setup
     - make user_adder
-    - make install
     - make pdk-with-volare
     - make simenv
     # - make verify-adder_test1-rtl
