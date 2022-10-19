@@ -1,3 +1,7 @@
+stages:
+  - build
+  - test
+
 build:
   except:
    changes:
@@ -15,16 +19,22 @@ build:
     - apk add git make python3 py3-pip
     - cd user_adder_example
     - source ./setup.sh
-    - make precheck
     - make setup
     - make install
     - make openlane
-    - cd $PRECHECK_ROOT && python3 mpw_precheck.py --input_directory $(pwd) --pdk_path $PDK_ROOT/$PDK
     - make user_adder
     - make pdk-with-volare
     - make simenv
+    - make user_project_wrapper
+
+precheck:
+  tags: [docker]
+  stage: test
+  image: efabless/mpw_precheck:latest
+  script:
+    - make precheck
+    - cd $PRECHECK_ROOT && python3 mpw_precheck.py --input_directory $(pwd) --pdk_path $PDK_ROOT/$PDK
+    # - make run-precheck
     # - make verify-adder_test1-rtl
     # - make verify-adder_test1-gl
     # - make user_adder
-    - make user_project_wrapper
-    # - make run-precheck
