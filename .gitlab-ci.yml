@@ -16,9 +16,9 @@ build:
     - apk add git make python3 py3-pip
     - cd user_adder_example
     - source ./setup.sh
+    - make setup
     - make install
     - make openlane
-    - make setup
     - make user_adder
     - make pdk-with-volare
     - make simenv
