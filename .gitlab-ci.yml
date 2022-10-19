@@ -1,6 +1,6 @@
 build:
   except:
-   - changes:
+   changes:
     - README.md
     - docs/**/*
   tags: [docker]
@@ -17,13 +17,13 @@ build:
     - cd user_adder_example
     - source ./setup.sh
     - make setup
-    - make user_adder
     - make install
+    - make openlane
+    - make user_adder
     - make pdk-with-volare
     - make simenv
     # - make verify-adder_test1-rtl
     # - make verify-adder_test1-gl
-    - make openlane
     # - make user_adder
     - make user_project_wrapper
     - make precheck
