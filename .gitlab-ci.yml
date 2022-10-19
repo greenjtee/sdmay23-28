@@ -12,7 +12,7 @@ build:
   image: docker:20.10.16-dind
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
-    SHARED_PATH: /builds/shared/$CI_PROJECT_PATH
+    SHARED_PATH: /builds/$CI_PROJECT_PATH/mnt
   services:
     - name: docker:20.10.16-dind
   script:
