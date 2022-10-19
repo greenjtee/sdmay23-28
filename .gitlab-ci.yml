@@ -19,7 +19,7 @@ build:
     - make setup
     - make install
     - make openlane
-    - cd $(PRECHECK_ROOT) && python3 mpw_precheck.py --input_directory $(INPUT_DIRECTORY) --pdk_path $(PDK_ROOT)/$(PDK)
+    - cd $PRECHECK_ROOT && python3 mpw_precheck.py --input_directory $(pwd) --pdk_path $PDK_ROOT/$PDK
     - make user_adder
     - make pdk-with-volare
     - make simenv
