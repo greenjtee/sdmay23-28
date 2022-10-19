@@ -6,6 +6,7 @@
 *.lst
 *.vcd
 *.gtkw
+*.log
 
 dependencies
 def
@@ -18,3 +19,6 @@ sdf
 signoff
 spef
 spi
+not_needed
+caravel
+mgmt_core_wrapper
