@@ -1,6 +1,6 @@
 build:
   except:
-   - changes:
+   changes:
     - README.md
     - docs/**/*
   tags: [docker]
