@@ -9,15 +9,15 @@
 *.log
 
 dependencies
-# def
-# gds
-# lef
-# mag
-# maglef
-# sdc
-# sdf
-# signoff
-# spi
+def
+gds
+lef
+mag
+maglef
+sdc
+sdf
+signoff
+spi
 spef
 caravel
 mgmt_core_wrapper
