@@ -32,7 +32,7 @@ set ::env(CLOCK_PERIOD) "10"
 
 # always got: "There are hold violations in the design at the typical corner" when FP_SIZING was absolute... 
 # no matter what PL or GLB parameters I set. tried increasing both HOLD_MAX_BUFFER_PERCENT and HOLD_SLACK_MARGIN to 80% and 0.3ns
-set ::env(FP_SIZING) absolute
+set ::env(FP_SIZING) absolute 
 # max area in wrapper: 0 0 2920 3520
 set ::env(DIE_AREA) "0 0 900 600"
 

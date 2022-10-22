@@ -1,16 +1,47 @@
+stages:
+  - build
+  - test
+
 build:
+  except:
+   changes:
+    - README.md
+    - docs/**/*
   tags: [docker]
   stage: build
-  image: docker:20.10.16-dind #alpine:3.16.2
+  image: docker:20.10.16-dind
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
+    SHARED_PATH: /builds/$CI_PROJECT_PATH/mnt
   services:
     - name: docker:20.10.16-dind
   script:
     - apk update
-    - apk add git make python3 py3-pip #docker openrc
-    # - chmod +x ./setup.sh
+    - apk add git make python3 py3-pip
     - cd user_adder_example
     - source ./setup.sh
     - make setup
+    - make install
+    - make openlane
     - make user_adder
+    - make pdk-with-volare
+    - make simenv
+    - export PRECHECK_ROOT=${SHARED_PATH}/mpw_precheck
+    - make precheck
+    - make user_project_wrapper
+    - make run-precheck
+
+precheck:
+  tags: [docker]
+  when: manual
+  stage: test
+  image: efabless/mpw_precheck:latest
+  script:
+    - export PRECHECK_ROOT=/root/mpw_precheck
+    - cd user_adder_example
+    - cd $PRECHECK_ROOT && python3 mpw_precheck.py --input_directory $(pwd) --pdk_path $PDK_ROOT/$PDK
+    - source ./setup.sh
+    # - make run-precheck
+    # - make verify-adder_test1-rtl
+    # - make verify-adder_test1-gl
+    # - make user_adder
