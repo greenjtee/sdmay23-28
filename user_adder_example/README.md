@@ -25,3 +25,6 @@ Run ``make setup`` to fetch the required openlane resources for hardening.
 
 ## Hardening
 To harden the user_adder, run ``make user_adder``.
+
+## Common Issues
+If you get an error that volare was not found after running ``make setup``, it is likely that your pip install location is not on your PATH. This should be fixed by running ``export PATH="$HOME/.local/bin:$PATH"``.
