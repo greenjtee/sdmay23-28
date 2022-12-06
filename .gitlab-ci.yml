@@ -21,15 +21,15 @@ build:
     - cd user_adder_example
     - source ./setup.sh
     - make setup
-    - make install
-    - make openlane
+    # - make install
+    # - make openlane
     - make user_adder
-    - make pdk-with-volare
-    - make simenv
-    - export PRECHECK_ROOT=${SHARED_PATH}/mpw_precheck
-    - make precheck
+    # - make pdk-with-volare
+    # - make simenv
+    # - export PRECHECK_ROOT=${SHARED_PATH}/mpw_precheck
+    # - make precheck
     - make user_project_wrapper
-    - make run-precheck
+    # - make run-precheck
 
 precheck:
   tags: [docker]
