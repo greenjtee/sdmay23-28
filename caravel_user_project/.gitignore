@@ -10,3 +10,15 @@
 dependencies
 caravel
 mgmt_core_wrapper
+def
+gds
+lef
+lib
+mag
+maglef
+sdc
+sdf
+signoff
+spef
+spi
+verilog/gl
