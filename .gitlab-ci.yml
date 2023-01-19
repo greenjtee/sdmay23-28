@@ -3,10 +3,10 @@ stages:
   - test
 
 build:
-  except:
-   changes:
-    - README.md
-    - docs/**/*
+  # except:
+  #  changes:
+  #   - README.md
+  #   - docs/**/*
   tags: [docker]
   stage: build
   image: docker:20.10.16-dind
