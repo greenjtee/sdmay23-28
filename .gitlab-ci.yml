@@ -18,12 +18,12 @@ build:
   script:
     - apk update
     - apk add git make python3 py3-pip
-    - cd user_adder_example
+    - cd caravel_user_project
     - source ./setup.sh
     - make setup
     # - make install
     # - make openlane
-    - make user_adder
+    # - make user_adder
     # - make pdk-with-volare
     # - make simenv
     # - export PRECHECK_ROOT=${SHARED_PATH}/mpw_precheck
