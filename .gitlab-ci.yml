@@ -17,6 +17,7 @@ build:
     - cd caravel_user_project
     - source ./setup.sh
     - make setup
+    - make snn
     - make user_project_wrapper
     - make verify-neuron_test-rtl
 
