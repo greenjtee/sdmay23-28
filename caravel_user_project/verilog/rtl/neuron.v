@@ -24,7 +24,8 @@ module neuron #(
     //assign a spike if we pass our threshold voltage
     assign spike = v_mem_decayed > v_th ? 1 : 0;
 
-    assign v_mem_out = function_sel ? (spike ? 0 : v_mem_decayed) : (v_mem_added);
+    assign v_mem_out = function_sel ? (spike ? 0 : v_mem_decayed) : 
+                                      (v_mem_added);
 endmodule
 
 `default_nettype wire

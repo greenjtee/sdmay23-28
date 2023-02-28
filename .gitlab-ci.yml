@@ -3,10 +3,6 @@ stages:
   - test
 
 build:
-  # except:
-  #  changes:
-  #   - README.md
-  #   - docs/**/*
   tags: [docker]
   stage: build
   image: docker:20.10.16-dind
@@ -21,19 +17,10 @@ build:
     - cd caravel_user_project
     - source ./setup.sh
     - make setup
-    # - make install
-    # - make openlane
-    # - make user_adder
-    # - make pdk-with-volare
-    # - make simenv
-    # - export PRECHECK_ROOT=${SHARED_PATH}/mpw_precheck
-    # - make precheck
     - make user_project_wrapper
-    # - make run-precheck
 
 precheck:
   tags: [docker]
-  when: manual
   stage: test
   image: docker:20.10.16-dind
   variables:
@@ -42,17 +29,9 @@ precheck:
   services:
     - name: docker:20.10.16-dind
   script:
-    # - export PRECHECK_ROOT=/root/mpw_precheck
-    # - cd user_adder_example
-    # - cd $PRECHECK_ROOT && python3 mpw_precheck.py --input_directory $(pwd) --pdk_path $PDK_ROOT/$PDK
-    # - source ./setup.sh
-    # - make run-precheck
-    # - make verify-adder_test1-rtl
-    # - make verify-adder_test1-gl
-    # - make user_adder
     - apk update
     - apk add git make python3 py3-pip
     - cd caravel_user_project
     - source ./setup.sh
     - make setup
-    - make verify-la_test_sram-rtl
+    - make verify-neuron_test-rtl
