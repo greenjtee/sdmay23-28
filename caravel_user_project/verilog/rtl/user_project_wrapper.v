@@ -82,7 +82,7 @@ module user_project_wrapper #(
 /* User project is instantiated  here   */
 /*--------------------------------------*/
 
-user_proj_example mprj (
+snn mprj (
 `ifdef USE_POWER_PINS
 	.vccd1(vccd1),	// User area 1 1.8V power
 	.vssd1(vssd1),	// User area 1 digital ground
@@ -118,6 +118,6 @@ user_proj_example mprj (
     .irq(user_irq)
 );
 
-endmodule	// user_project_wrapper
+endmodule
 
 `default_nettype wire

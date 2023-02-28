@@ -104,48 +104,62 @@ module user_proj_example #(
     assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
     assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
 
-    neuron #(
-        
-    ) neuron(
-        .weight(la_data_in[7:0]),
-        .v_mem_in(la_data_in[15:8]),
-        .beta(la_data_in[23:16]),
-        .function_sel(la_data_in[40]),
-        .v_th(la_data_in[31:24]),
-        .spike(la_data_out[41]),
-        .v_mem_out(la_data_out[39:32])
+    counter #(
+        .BITS(BITS)
+    ) counter(
+        .clk(clk),
+        .reset(rst),
+        .ready(wbs_ack_o),
+        .valid(valid),
+        .rdata(rdata),
+        .wdata(wbs_dat_i),
+        .wstrb(wstrb),
+        .la_write(la_write),
+        .la_input(la_data_in[63:32]),
+        .count(count)
     );
 
 endmodule
 
-module neuron #(
-    parameter WEIGHT_SIZE = 8,
-    parameter V_MEM_SIZE = 8,
-    parameter B_SIZE = 8
+module counter #(
+    parameter BITS = 32
 )(
-    input [WEIGHT_SIZE-1:0] weight,
-    input [V_MEM_SIZE-1:0] v_mem_in,
-    input [B_SIZE-1:0] beta,
-    input function_sel,
-    input [V_MEM_SIZE-1:0] v_th,
-    output spike,
-    output [V_MEM_SIZE-1:0] v_mem_out
+    input clk,
+    input reset,
+    input valid,
+    input [3:0] wstrb,
+    input [BITS-1:0] wdata,
+    input [BITS-1:0] la_write,
+    input [BITS-1:0] la_input,
+    output ready,
+    output [BITS-1:0] rdata,
+    output [BITS-1:0] count
 );
+    reg ready;
+    reg [BITS-1:0] count;
+    reg [BITS-1:0] rdata;
 
-    wire [V_MEM_SIZE-1:0] v_mem_decayed;
-    wire [V_MEM_SIZE-1:0] v_mem_added;
-    
-    //basic functions for decay and addition of weight
-    assign v_mem_decayed = v_mem_in * beta;
-    assign v_mem_added = v_mem_in + weight;
+    always @(posedge clk) begin
+        if (reset) begin
+            count <= 0;
+            ready <= 0;
+        end else begin
+            ready <= 1'b0;
+            if (~|la_write) begin
+                count <= count + 1;
+            end
+            if (valid && !ready) begin
+                ready <= 1'b1;
+                rdata <= count;
+                if (wstrb[0]) count[7:0]   <= wdata[7:0];
+                if (wstrb[1]) count[15:8]  <= wdata[15:8];
+                if (wstrb[2]) count[23:16] <= wdata[23:16];
+                if (wstrb[3]) count[31:24] <= wdata[31:24];
+            end else if (|la_write) begin
+                count <= la_write & la_input;
+            end
+        end
+    end
 
-    //assign a spike if we pass our threshold voltage
-    assign spike = v_mem_decayed > v_th ? 1 : 0;
-
-    assign v_mem_out = function_sel ? (spike ? 0 : v_mem_decayed) : (v_mem_added);
-endmodule;
-
-
-
-
+endmodule
 `default_nettype wire
