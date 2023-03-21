@@ -22,7 +22,13 @@
     `default_nettype wire
     `include "gl/user_project_wrapper.v"
     `include "gl/user_proj_example.v"
+    `include "gl/snn.v"
+    `include "gl/neuron.v"
+    `include "gl/sky130_sram_1kbyte_1rw1r_8x1024_8.v"
 `else
     `include "user_project_wrapper.v"
     `include "user_proj_example.v"
+    `include "snn.v"
+    `include "neuron.v"
+    `include "sky130_sram_1kbyte_1rw1r_8x1024_8.v"
 `endif
