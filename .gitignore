@@ -6,3 +6,6 @@
 *.lst
 *.vcd
 *.gtkw
+
+dependencies
+venv
