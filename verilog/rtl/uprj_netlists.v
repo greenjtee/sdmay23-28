@@ -24,11 +24,13 @@
     `include "gl/user_proj_example.v"
     `include "gl/snn.v"
     `include "gl/neuron.v"
+    `include "gl/queue.v"
     `include "gl/sky130_sram_1kbyte_1rw1r_8x1024_8.v"
 `else
     `include "user_project_wrapper.v"
     `include "user_proj_example.v"
     `include "snn.v"
     `include "neuron.v"
+    `include "queue.v"
     `include "sky130_sram_1kbyte_1rw1r_8x1024_8.v"
 `endif
