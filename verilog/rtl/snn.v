@@ -39,9 +39,9 @@ module snn #(
     input  [127:0] la_oenb,
 
     // IOs
-    input  [`MPRJ_IO_PADS-1:0] io_in,
-    output [`MPRJ_IO_PADS-1:0] io_out,
-    output [`MPRJ_IO_PADS-1:0] io_oeb,
+    input  [15:0] io_in,
+    output [15:0] io_out,
+    output [15:0] io_oeb,
 
     // IRQ
     output [2:0] irq
@@ -49,8 +49,9 @@ module snn #(
     wire clk;
     wire rst;
 
-    wire [`MPRJ_IO_PADS-1:0] io_in;
-    wire [`MPRJ_IO_PADS-1:0] io_oeb;
+    wire [15:0] io_in;
+    wire [15:0] io_out;
+    wire [15:0] io_oeb;
 
     wire [31:0] rdata; 
     wire [31:0] wdata;
@@ -67,7 +68,8 @@ module snn #(
     assign wdata = wbs_dat_i;
 
     // IO
-    assign io_oeb = {(`MPRJ_IO_PADS-1){rst}};
+    assign io_out = count;
+    assign io_oeb = {(15){rst}};
 
     // IRQ
     assign irq = 3'b000;	// Unused
