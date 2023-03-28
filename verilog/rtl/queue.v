@@ -17,6 +17,7 @@ module queue #(
     reg [9:0] size;
 
     reg [7:0] queue_data_i;
+    reg queue_insert;
     wire [7:0] data_o;
 
     always @(posedge clk) begin
@@ -28,6 +29,7 @@ module queue #(
         end else begin
 
             queue_data_i <= data_i;
+            queue_insert <= insert;
 
             if (insert && size < MAX_SIZE) begin
                 size <= size + 1;
@@ -46,10 +48,10 @@ module queue #(
         // rw
         .clk0(clk),
         .csb0(1'b0),
-        .web0(insert),
+        .web0(queue_insert),
         .wmask0(1'b1),
         .addr0(tail_address),
-        .din0(data_i),
+        .din0(queue_data_i),
         .dout0(),
         // r
         .clk1(clk),

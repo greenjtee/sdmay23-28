@@ -1,20 +1,9 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// SPDX-License-Identifier: Apache-2.0
-
 `default_nettype none
 
 module snn #(
-    parameter BITS = 32
+    parameter BITS = 32,
+    parameter WEIGHTS_BASE = 32'h3000_0000, // address of sram for weights
+    parameter WEIGHTS = 14*14 // number of weights
 )(
 `ifdef USE_POWER_PINS
     inout vccd1,	// User area 1 1.8V supply
@@ -50,44 +39,127 @@ module snn #(
     wire rst;
 
     wire [15:0] io_in;
-    wire [15:0] io_out;
     wire [15:0] io_oeb;
+
+    // reg [31:0] rdata; 
+    // reg [31:0] wdata;
+
+    // wire [31:0] la_write;
+
+    reg [7:0] sram_weight_in;
+    reg [9:0] sram_weight_neuron_id_in;
+
+    wire sram_weight_csb1_in;
+    wire [7:0] vmem_in;
+    reg sram_we;
+
+    reg [7:0] beta_reg;
+    reg function_sel_reg;
+    reg [7:0] v_th_reg;
+
+    wire neuron_spike_out;
+
+    wire [7:0] neuron_v_mem_out;
+    reg [7:0] neuron_weight_in;
+    wire [7:0] sram_weight_out;
+    wire [7:0] neuron_weight_out;
+
+    wire [9:0] neuron_id_current;
+
+    // IO
+    assign io_oeb = {15{rst}};
+
+    // assign la_write = ~la_oenb[63:32] & ~{BITS{valid}};
+    assign clk = wb_clk_i;
+    assign rst = wb_rst_i;
+
+    // assign sram_weight_csb1_in = la_data_in[];
+    assign vmem_in = la_data_in[31:26];
+    assign neuron_id_current = la_data_in[25:16];
+
+    assign neuron_v_mem_out = la_data_out[47:40];
+    assign neuron_spike_out = la_data_out[48];
+    assign neuron_weight_out = la_data_out[71:64];
 
     wire [31:0] rdata; 
     wire [31:0] wdata;
-    wire [BITS-1:0] count;
 
     wire valid;
     wire [3:0] wstrb;
-    wire [31:0] la_write;
+    reg wbs_ack_o;
 
-    // WB MI A
     assign valid = wbs_cyc_i && wbs_stb_i; 
     assign wstrb = wbs_sel_i & {4{wbs_we_i}};
     assign wbs_dat_o = rdata;
     assign wdata = wbs_dat_i;
+    // assign wbs_ack_o = ready;
 
-    // IO
-    assign io_out = count;
-    assign io_oeb = {(15){rst}};
+    always @(posedge clk)
+    begin
+        beta_reg <= la_data_in[7:0];
+        v_th_reg <= la_data_in[15:8];
+        function_sel_reg <= la_data_in[32];
+        sram_we <= la_data_in[33];
+        neuron_weight_in <= sram_weight_out;
+    end
 
-    // IRQ
-    assign irq = 3'b000;	// Unused
+    // wishbone ----------------------------------------------------------------------------------------------------
 
-    assign la_write = ~la_oenb[63:32] & ~{BITS{valid}};
-    assign clk = (~la_oenb[64]) ? la_data_in[64]: wb_clk_i;
-    assign rst = (~la_oenb[65]) ? la_data_in[65]: wb_rst_i;
+    // writes
+    always @(posedge clk) begin
+        if (rst) begin
+            wbs_ack_o <= 0;
+        end else begin
+            wbs_ack_o = 1'b0;
+            if(valid && !wbs_ack_o && wbs_adr_i == 32'h3000_000) begin
+                wbs_ack_o = 1'b1;
+                if (wstrb[0]) sram_weight_neuron_id_in <= wbs_dat_i[7:0];
+                if (wstrb[1]) sram_weight_in <= wbs_dat_i[15:8];
+            end
+        end
+    end
+
+    // wishbone end ----------------------------------------------------------------------------------------------------
+
+    queue #()
+    spike_queue (
+        .clk(clk),
+        .insert(1'b1),
+        .read(1'b1),
+        .data_i(la_data_in[103:96]),
+        .valid_o(la_data_in[112]),
+        .data_o(la_data_out[111:104])
+    );
 
     neuron #(
-        
+
     ) neuron(
-        .weight(la_data_in[7:0]),
-        .v_mem_in(la_data_in[15:8]),
-        .beta(la_data_in[23:16]),
-        .function_sel(la_data_in[40]),
-        .v_th(la_data_in[31:24]),
-        .spike(la_data_out[41]),
-        .v_mem_out(la_data_out[39:32])
+        .weight(neuron_weight_in),
+        .v_mem_in(vmem_in),
+        .beta(beta_reg),
+        .function_sel(function_sel_reg),
+        .v_th(v_th_reg),
+        .spike(neuron_spike_out),
+        .v_mem_out(neuron_v_mem_out)
+    );
+
+    sky130_sram_1kbyte_1rw1r_8x1024_8 #(
+        .VERBOSE(0)
+    )
+    sram_weights(
+        // rw
+        .clk0(clk),
+        .csb0(1'b0),
+        .web0(sram_we),
+        .wmask0(1'b1),
+        .addr0(sram_weight_neuron_id_in),
+        .din0(sram_weight_in),
+        .dout0(),
+        // r
+        .clk1(clk),
+        .csb1(1'b0),
+        .addr1(neuron_id_current),
+        .dout1(sram_weight_out)
     );
 
 endmodule
