@@ -29,7 +29,7 @@ module queue #(
         end else begin
 
             queue_data_i <= data_i;
-            queue_insert <= insert;
+            queue_insert <= ~insert;
 
             if (insert && size < MAX_SIZE) begin
                 size <= size + 1;
@@ -42,7 +42,7 @@ module queue #(
     end
 
     sky130_sram_1kbyte_1rw1r_8x1024_8 #(
-        .VERBOSE(0)
+        .VERBOSE(1)
     )
     queue_sram(
         // rw
