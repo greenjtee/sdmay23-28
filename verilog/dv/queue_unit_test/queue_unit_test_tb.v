@@ -14,6 +14,7 @@
 module queue_unit_test_tb;
 	parameter PERIOD = 10;
 
+	integer i;
 
 	reg clock;
 	reg rst;
@@ -65,7 +66,23 @@ module queue_unit_test_tb;
 		read_i = 1'b1;
 		#PERIOD;
 
-		$stop;
+		// insert many things
+		// more than size of sram, should overwrite
+		for (i = 0; i < 1030 ; i=i+1) begin
+			insert_i = 1'b1;
+			data_i = 8'h03;
+			#PERIOD;
+		end
+		
+		insert_i = 1'b0;
+
+		// read many things back
+		for (i = 0; i < 1030 ; i=i+1) begin
+			read_i = 1'b1;
+			#PERIOD;
+		end
+
+		$finish;
 
 	end
 
