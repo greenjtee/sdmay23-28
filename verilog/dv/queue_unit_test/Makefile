@@ -18,15 +18,14 @@
  
 PWDD := $(shell pwd)
 BLOCKS := $(shell basename $(PWDD))
+SRAM := ../../../dependencies/pdks/sky130A/libs.ref/sky130_sram_macros/verilog/sky130_sram_1kbyte_1rw1r_8x1024_8.v
 
 # ---- Include Partitioned Makefiles ----
 
 CONFIG = caravel_user_project
 
+default: test
 
-include $(MCW_ROOT)/verilog/dv/make/env.makefile
-include $(MCW_ROOT)/verilog/dv/make/var.makefile
-include $(MCW_ROOT)/verilog/dv/make/cpu.makefile
-include $(MCW_ROOT)/verilog/dv/make/sim.makefile
-
-
+test: queue_unit_test_tb.v $(SRAM) ../../rtl/queue.v
+	iverilog -o queue_unit_test_out queue_unit_test_tb.v ../../rtl/queue.v $(SRAM)
+	vvp queue_unit_test_out

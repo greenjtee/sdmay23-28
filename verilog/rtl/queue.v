@@ -31,10 +31,10 @@ module queue #(
             queue_data_i <= data_i;
             queue_insert <= ~insert;
 
-            if (insert && size < MAX_SIZE) begin
+            if (insert) begin
                 size <= size + 1;
                 tail_address <= tail_address + 1;
-            end else if (read && size > 0) begin
+            end else if (read) begin
                 size <= size - 1;
                 head_address <= head_address + 1;
             end
