@@ -10,7 +10,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // SPDX-License-Identifier: Apache-2.0
-
 module queue_unit_test_tb;
 	parameter PERIOD = 10;
 
@@ -36,6 +35,11 @@ module queue_unit_test_tb;
 	begin
 		$dumpfile("queue_unit_test.vcd");
 		$dumpvars(0, queue_unit_test_tb);
+
+		// initialize data
+		insert_i = 1'b0;
+		read_i = 1'b0;
+		data_i = 8'h00;
 
 		// reset values
 		rst <= 1'b1;
@@ -68,16 +72,16 @@ module queue_unit_test_tb;
 
 		// insert many things
 		// more than size of sram, should overwrite
-		for (i = 0; i < 1030 ; i=i+1) begin
+		for (i = 0; i < 1000 ; i=i+1) begin
 			insert_i = 1'b1;
-			data_i = 8'h03;
+			data_i = i;
 			#PERIOD;
 		end
 		
 		insert_i = 1'b0;
 
 		// read many things back
-		for (i = 0; i < 1030 ; i=i+1) begin
+		for (i = 0; i < 1000 ; i=i+1) begin
 			read_i = 1'b1;
 			#PERIOD;
 		end
