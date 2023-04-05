@@ -14,15 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-
- 
-PWDD := $(shell pwd)
-BLOCKS := $(shell basename $(PWDD))
 SRAM := ../../../dependencies/pdks/sky130A/libs.ref/sky130_sram_macros/verilog/sky130_sram_1kbyte_1rw1r_8x1024_8.v
-
-# ---- Include Partitioned Makefiles ----
-
-CONFIG = caravel_user_project
 
 default: test
 
