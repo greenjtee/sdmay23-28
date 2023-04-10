@@ -149,6 +149,18 @@ module snn #(
     wire [7:0] write_data;                      //see next ling
     assign write_data = user_data or cpu_data;  //single write data signal shared between cpu and user area depending on state
 
+    //cpu signals
+    wire cpu_valid;
+    wire inf_start;
+    wire [11:0] cpu_write_addr; //this will handle image and weight data
+    wire [11:0] cpu_read_addr;
+    wire [7:0] cpu_data;
+
+    //data write signal
+    wire [7:0] user_data;
+    wire [7:0] write_data;
+    assign write_data = user_data or cpu_data;
+
     //done signal
     wire inf_done;                              //inference done signal
     reg inf_done_reg;                           //inference done signal
@@ -399,6 +411,7 @@ module snn #(
                 end else begin //valid signal low
                     vmem_processed      = 0;
                     spikes_processed    = 0;
+                    ld_queue            = 0;
                     ns                  = LEAK_VMEM;   //all spikes processed
                 end
 
