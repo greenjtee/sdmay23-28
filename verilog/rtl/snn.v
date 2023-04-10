@@ -121,6 +121,16 @@ module snn #(
 
     // wishbone end ----------------------------------------------------------------------------------------------------
 
+    queue #()
+    spike_queue (
+        .clk(clk),
+        .insert(1'b1),
+        .read(1'b1),
+        .data_i(la_data_in[103:96]),
+        .valid_o(la_data_in[112]),
+        .data_o(la_data_out[111:104])
+    );
+
     //number of timesteps
     localparam NUM_TIMESTEPS = 100;
 
@@ -149,9 +159,21 @@ module snn #(
     wire [7:0] write_data;                      //see next ling
     assign write_data = user_data or cpu_data;  //single write data signal shared between cpu and user area depending on state
 
+    //cpu signals
+    wire cpu_valid;
+    wire inf_start;
+    wire [11:0] cpu_write_addr; //this will handle image and weight data
+    wire [11:0] cpu_read_addr;
+    wire [7:0] cpu_data;
+
+    //data write signal
+    wire [7:0] user_data;
+    wire [7:0] write_data;
+    assign write_data = user_data or cpu_data;
+
     //done signal
-    wire inf_done;                              //inference done signal
-    reg inf_done_reg;                           //inference done signal
+    wire inf_done;
+    reg inf_done_reg;
 
     //memory enable signals
     wire queue_en;
@@ -168,57 +190,52 @@ module snn #(
     wire [7:0] weights1_data;
 
     //signals for spike generation
-    reg [7:0] curr_pixel_reg;                   //current pixel being processed (row wise)
-    wire [7:0] curr_pixel;                      //see above line
-    wire pixel_ld0;                             //load signal for memory bank 0
-    reg pixel_ld0_reg;                          //load signal for memory bank 0
-    wire pixel_ld1;                             //load signal for memory bank 0
-    reg pixel_ld1_reg;                          //load signal for memory bank 0
-    wire ld_queue;                              //enable signal for loading queue
+    reg [7:0] curr_pixel_reg;
+    wire [7:0] curr_pixel;
+    wire pixel_ld0;
+    reg pixel_ld0_reg;
+    wire pixel_ld1;
+    reg pixel_ld1_reg;
+    wire ld_queue;
 
     //intermediate registers for keeping track of neuron processing
-    reg [3:0] vmem_processed_reg;               //how many output neurons have been calculated
-    wire [3:0] vmem_processed;                  //how many output neurons have been caluclated
-    reg [7:0] curr_timestep;                    //counter that tracks number of passed timesteps
-    wire load_timestep;                         //enable signal for starting the next timestep
-    reg [7:0] target_timestep_reg;              //number of timesteps to carry out
-    wire [7:0] target_timestep;
+    reg [9:0] vmem_processed_reg;            //how many output neurons have been calculated
+    wire [9:0] vmem_processed;
+    reg [7:0] curr_timestep;
+    wire load_timestep;
 
     //internal reset
-    wire rst_internal;                          //internal reset
-    wire sys_rst;                               //system reset
-    assign sys_rst = rst_internal or rst;       //internal reset depends on the actual internal reset signal or system reset
+    wire rst_internal;
+    wire sys_rst;
+    assign sys_rst = rst_internal or rst;
 
     //load spike intermediate signlas
     wire queue_valid;                           //whether or not the data from queue is valid - controls state transition
     reg [7:0] queue_reg;                        //data register from queue
 
     //output neuron specific registers
-    reg [7:0] vmem [9:0];                       //registers of current vmem values
-    reg [7:0] spike_num [9:0];                  //how many times neuron spiked
+    reg [7:0] vmem [9:0];                   //registers of current vmem values
+    reg [7:0] spike_num [9:0]               //how many times neuron spiked
     
     //registers for operation results
-    reg [7:0] curr_vmem_reg;                    //value of current membrane voltage (neuron)
-    reg [7:0] curr_weight_reg;                  //value of current weight being used
-    reg nueron_op_reg;                          //function for neuron to carry out
+    reg [7:0] curr_vmem_reg;                //value of current membrane voltage (neuron)
+    reg [7:0] curr_weight_reg;              //value of current weight being used
+    reg nueron_op_reg;                      //function for neuron to carry out
 
     //signals used for neuron operation
-    wire [7:0] curr_vmem;                       //value of current membrane voltage (neuron)
-    wire [7:0] curr_weight;                     //value of current weight being used
-    wire [7:0] result;                          //neuron output for integrate function
-    wire nueron_op;                             //function for neuron to carry out
-    wire vmem_load;                             //dictates loading of a vmem register
-    wire spike_load;                            //dictates incrementing a spike count register
-    wire spike_out;                             //whether or not there is a spike
-    reg [7:0] beta_reg;                         //beta value
-    wire [7:0] beta;                            //beta value
-    reg [7:0] vthresh_reg;                      //voltage threshold 
-    wire [7:0] vthresh;
-    
+    wire [7:0] curr_vmem;                   //value of current membrane voltage (neuron)
+    wire [7:0] curr_weight;                 //value of current weight being used
+    wire [7:0] result;                      //neuron output for integrate function
+    wire nueron_op;                         //function for neuron to carry out
+    wire vmem_load;                         //dictates loading of a vmem register
+    wire spike_load;                        //dictates incrementing a spike count register
+    wire spike_out;                         //whether or not there is a spike
+    reg [7:0] beta_reg;
+    wire [7:0] beta;
 
     //clocked process
     always @ (posedge(clk)) begin
-        if (sys_rst) begin  //reset
+        if (sys_rst) begin //reset
             ps                      <= LOAD_IMG;
             vmem_processed_reg      <= 0;
             curr_timestep           <= 0;
@@ -230,48 +247,38 @@ module snn #(
             curr_pixel_reg          <= 0; 
             pixel_ld0_reg           <= 0;
             pixel_ld1_reg           <= 0;
-            vthresh_reg             <= 0;
-            queue_reg               <= 0;
-            int i;  //iterate through all arrays of registers
+            int i;
             for (i = 0; i < 10; i = i + 1) begin
                 vmem[i]             <= 0;
                 spike_num[i]        <= 0;
             end
 
         end else begin //update registers
-            curr_vmem_reg           <= curr_vmem;
-            curr_weight_reg         <= curr_weight;
-            nueron_op_reg           <= nueron_op;
-            vmem_processed_reg      <= vmem_processed;
-            curr_timestep           <= curr_timestep;
-            target_timestep_reg     <= target_timestep;
-            beta_reg                <= beta;
-            curr_pixel_reg          <= curr_pixel;
-            pixel_ld0_reg           <= pixel_ld0;
-            pixel_ld1_reg           <= pixel_ld1;
-            vthresh_reg             <= vthresh;
-            target_timestep_reg     <= target_timestep;
-            queue_reg               <= queue_reg; 
-            ps                      <= ns;
-            if (vmem_load == 1) begin   //enable signal for loading vmem register
+            curr_vmem_reg                   <= curr_vmem;
+            curr_weight_reg                 <= curr_weight;
+            nueron_op_reg                   <= nueron_op;
+            vmem_processed_reg              <= vmem_processed;
+            curr_timestep                   <= curr_timestep;
+            beta_reg                        <= beta;
+            curr_pixel_reg                  <= curr_pixel;
+            pixel_ld0_reg                   <= pixel_ld0;
+            pixel_ld1_reg                   <= pixel_ld1;
+            ps                              <= ns;
+            if (vmem_load == 1) begin
                 vmem[vmem_processed]        <= result;
             end
-            if (spike_load == 1) begin  //enable signal for loading spike register
+            if (spike_load == 1) begin
                 spike_num[vmem_processed]   <= spike_num[vmem_processed] + 1;
             end
-            if (load_timestep == 1) begin   //enable signal for incrementing timestep
+            if (load_timestep == 1) begin
                 curr_timestep               <= curr_timestep + 1;
-            end
-            if (queue_valid == 1) begin
-                queue_reg   <= queue_data;
             end
         end
     end
 
     //non clocked process
     always @ (ps) begin
-        //add default statements for all conditional signals
-        //the following have corresponding registers
+        //add default statements
         curr_vmem           = curr_vmem_reg;
         curr_weight         = curr_weight_reg;
         nueron_op           = nueron_op_reg;
@@ -280,10 +287,7 @@ module snn #(
         curr_pixel          = curr_pixel_reg;
         pixel_ld0           = pixel_ld0_reg;
         pixel_ld1           = pixel_ld1_reg;
-        vthresh             = vthresh_reg;
-        target_timestep_reg = target_timestep;
-        //the following do not have corresponding registers
-        read_addr           = 0;
+        cpu_read_addr       = 0;
         pixel_ld1           = 0;      
         pixel_ld0           = 0;
         vmem_load           = 0;
@@ -302,20 +306,28 @@ module snn #(
 
         //begin case
         case(ps)
-            LOAD_IMG:  
-                if (cpu_valid == 1) begin                                                           //if cpu is sending valid data
-                    if (cpu_write_addr[11] == 0) begin                                              //check the 'image data' bit
-                        if (cpu_write_addr >= 98) begin    //if these bits are high we use the 2nd bank of memory
-                            image1_en   = 1;                                                        //enable writing for 2nd memory bank
-                        end else begin                                                              //use 1st bank
-                            image0_en   = 1;                                                        //enable writing for 1st memory bank
+            LOAD_IMG:
+                if (cpu_valid == 1) begin
+                    if (cpu_write_addr[11] == 0) begin //image data
+                        if (cpu_write_addr[9] and cpu_write_addr[8] and cpu_write_addr[4]) begin //use 2nd bank
+                            image1_en   = 1;
+                        end else begin //use 1st bank
+                            image0_en   = 1;
                         end
-                    end else if (cpu_write_addr == "111111111111") begin    //if cpu is sending a beta value
-                        beta    = cpu_data;                                 //set beta value
-                    end else if (cpu_write_addr == "111111111110") begin
-                        vthresh = cpu_data;
-                    end else if (cpu_write_addr == "111111111101") begin
-                        target_timestep = cpu_data;
+                    end else if (cpu_write_addr == "111111111111") begin //beta value
+                        beta    = cpu_data;
+                    end else begin //weight data
+                        if (cpu_write_addr[9] and cpu_write_addr[8] and cpu_write_addr[7] and cpu_write_addr[6] and cpu_write_addr[4] and cpu_write_addr[2]) begin //use 2nd bank
+                            weights1_en     = 1;
+                        end else begin //use 1st bank
+                            weights0_en     = 1;
+                        end
+                    end
+                end else if (inf_start == 1) begin
+                    ns  = GEN_SPIKES;
+                end else begin
+                    ns  = LOAD_IMG;
+                end
 
                 end else begin                                              //weight data
                                                                             //if these bits are high use the 2nd bank
@@ -334,19 +346,8 @@ module snn #(
 
             //state for generating the spikes to be used by the neuron
             GEN_SPIKES:
-                /*
-                The following if statement checks for if the current pixel
-                is 0 since it will 'lag' behind the fetched data by 1 timestep.
-                This avoids the fatal case of trying to access the "-1st" pixel.
-
-                This block contains the 'randomizer' algorithm for the neuron that
-                involves a series of bit xor's. We carry this operation with data from
-                the correct memory block (hence why there are two if blocks). 
-                A spike is generated if the resulting signal is less than the pixel's
-                value and this is loaded into the queue.
-                */
-                if (curr_pixel_reg != 0) begin                              
-                    if (pixel_ld1_reg == 1) begin                           
+                if (curr_pixel_reg != 0) begin //pseudo-random generator
+                    if (pixel_ld1_reg == 1) begin
                         user_data[7] = image1_data[7] xor image1_data[3];
                         user_data[6] = image1_data[6] xor image1_data[2];
                         user_data[5] = image1_data[5] xor image1_data[1];
@@ -357,7 +358,7 @@ module snn #(
                         user_data[0] = image1_data[0] xor user_data[4];
                         if (user_data <= curr_pixel_reg) begin
                             ld_queue    = 1;
-                            write_data  = curr_pixel_reg - 1;
+                            write_data  = curr_pixel_reg;
                         end
                     end else if (pixel_ld0_reg == 1) begin
                         user_data[7] = image0_data[7] xor image0_data[3];
@@ -370,35 +371,33 @@ module snn #(
                         user_data[0] = image0_data[0] xor user_data[4];
                         if (user_data <= curr_pixel_reg) begin
                             ld_queue    = 1;
-                            write_data  = curr_pixel_reg - 1;
+                            write_data  = curr_pixel_reg;
                         end
                     end
                 end
-                if (curr_pixel_reg >= 98) begin                 //if we reach 1/2 through the image, switch to mem block 1
+                if (curr_pixel_reg == "01100010") begin //grab next data
                     pixel_ld1           = 1;
-                    read_addr           = curr_pixel_reg;
                     curr_pixel          = curr_pixel_reg + 1;
-                end else begin                                  //load next pixel and increment pixel count.
+                end else begin
                     pixel_ld0           = 1;
-                    read_addr           = curr_pixel_reg;
+                    cpu_read_addr       = curr_pixel_reg * 8;
                     curr_pixel          = curr_pixel_reg + 1;
                 end
-                if (curr_pixel_reg == "11000100") begin         //done generating spikes
+                if (curr_pixel_reg == "11000100") begin //done generating spikes
                     ns  = LOAD_SPIKE;
-                    ld_queue    = 1; //
                 end else begin
                     ns  = GEN_SPIKES;
                 end
 
             LOAD_SPIKE:
+                ld_queue    = 1;
                 if (valid_o == 1) begin //valid signal
-                    read_addr   = (queue_reg * 10) + vmem_processed_reg;  //desired weight value
-                    weights0_en = 1;
-                    weights1_en = 1;
-                    ns          = LOAD_WEIGHT;
+                    cpu_read_addr   = (queue_data * 8) + (vmem_processed_reg * 8);
+                    ns                  = LOAD_WEIGHT;
                 end else begin //valid signal low
                     vmem_processed      = 0;
                     spikes_processed    = 0;
+                    ld_queue            = 0;
                     ns                  = LEAK_VMEM;   //all spikes processed
                 end
 
@@ -414,7 +413,7 @@ module snn #(
 
             OPSTORE:
                 vmem_load       = 1;
-                if (vmem_processed_reg == 9) begin
+                if (vmem_processed_reg = 9) begin
                     ns                  = LOAD_SPIKE;
                 end else begin
                     vmem_processed      = vmem_processed_reg + 1;
@@ -427,7 +426,7 @@ module snn #(
                 ns          = LEAK_FIRE;
 
             LEAK_FIRE:
-                if (spike_out == 1) begin
+                if (spike_out = 1) begin
                     spike_load      = 1;
                 end
                 if (vmem_processed_reg = 9) begin
@@ -438,23 +437,25 @@ module snn #(
                 end
 
             CHECK_END:
-                if (curr_timestep == target_timestep_reg - 1) begin
+                if (curr_timestep = NUM_TIMESTEPS - 1) begin
                     rst_internal    = 1;
                     inf_done        = 1;
                 end else begin
                     ps              = GEN_SPIKES;     
                 end
 
-        endcase
+        end case
     end
 
     //neuron module
-    neuron #() neuron(
+    neuron #(
+
+    ) neuron(
         .weight(curr_weight_reg),
         .v_mem_in(curr_vmem_reg),
         .beta(beta_reg),
         .function_sel(nueron_op_reg),
-        .v_th(vthresh_reg),
+        .v_th(), //TODO HARDCODED OR CPU DRIVEN???????
         .spike(spike_out),
         .v_mem_out(result)
     );
@@ -483,7 +484,7 @@ module snn #(
         // r
         .clk1(clk),
         .csb1(1'b0),
-        .addr1(read_addr),
+        .addr1(cpu_read_addr),
         .dout1(image0_data)
     );
 
@@ -499,7 +500,7 @@ module snn #(
         // r
         .clk1(clk),
         .csb1(1'b0),
-        .addr1(read_addr),
+        .addr1(cpu_read_addr),
         .dout1(image1_data)
     );
 
@@ -516,7 +517,7 @@ module snn #(
         // r
         .clk1(clk),
         .csb1(1'b0),
-        .addr1(read_addr),
+        .addr1(cpu_read_addr),
         .dout1(weights0_data)
     );
 
@@ -532,7 +533,7 @@ module snn #(
         // r
         .clk1(clk),
         .csb1(1'b0),
-        .addr1(read_addr),
+        .addr1(cpu_read_addr),
         .dout1(weights1_data)
     );
 
