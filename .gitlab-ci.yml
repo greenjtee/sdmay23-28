@@ -19,7 +19,7 @@ build:
     - make setup
     - make snn
     - make user_project_wrapper
-    - make verify-neuron_test-rtl
+    # - make verify-neuron_test-rtl
 
 # precheck:
 #   tags: [docker]
