@@ -10,7 +10,6 @@
     ],
     "CLOCK_PERIOD": 25,
     "CLOCK_PORT": "wb_clk_i",
-    "CLOCK_NET": "",
     "FP_SIZING": "absolute",
     "DIE_AREA": "0 0 2800 1760",
     "FP_PIN_ORDER_CFG": "dir::pin_order.cfg",
@@ -32,7 +31,6 @@
         "vssd1"
     ],
     "IO_SYNC": 0,
-    "BASE_SDC_FILE": "dir::base_snn.sdc",
     "DIODE_INSERTION_STRATEGY": 3,
     "RUN_CVC": 1,
     "pdk::sky130*": {
