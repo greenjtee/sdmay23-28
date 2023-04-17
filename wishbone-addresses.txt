@@ -1,0 +1,45 @@
+The things we need to use the wishbone for include
+We can send 32 bits of data per address over wishbone
+
+ - Sending image data 	(14 x 14 x 8 bits) 	= 196 bytes
+ - Sending weights	(14 x 14 x 10 x 8 bits) = 1960 bytes
+ - Receiving output spike count (10 x 8 bits)	= 10 bytes
+ - Control registers
+	- Start inference 	(1 bit)		= 1 bit
+	- Beta value		(8 bits)	= 1 byte
+	- Threshold value	(8 bits)	= 1 byte
+	- Timesteps value	(10 bits)	= 1 byte + 2 bits
+--------------------------------------------------------------
+						= 3 bytes + 3 bits
+
+0x3000 0000 // start of user area Wishbone address space
+
+ - 0x3000 0000 | Start of 196 bytes of image data
+
+ 	- Image data format
+
+ 	MSB                                                   LSB
+	+-------------------------------------------------------+
+	| pixel 3 (8) | pixel 2 (8) | pixel 1 (8) | pixel 0 (8) |
+	+-------------------------------------------------------+
+
+ - 0x3000 1000 | Start of 1960 bytes of weights
+ 	- Weight data format (weight index is (pixel index x 10) + output offset)
+
+ 	MSB                                                       LSB
+	+-----------------------------------------------------------+
+	| weight 3 (8) | weight 2 (8) | weight 1 (8) | weight 0 (8) |
+	+-----------------------------------------------------------+
+
+ - 0x3000 2000 | Start of 10 bytes of output spikes
+ - 0x3000 3000 | Start of 4 control registers
+
+ 	- Control register format
+
+ 	MSB                                                             LSB
+	+-----------------------------------------------------------------+
+	| start inference (1) | timesteps (16) | threshold (8) | beta (8) |
+	+-----------------------------------------------------------------+
+
+0x7FFF FFFF // end of user area address space
+0x8000 0000 // start of next space
