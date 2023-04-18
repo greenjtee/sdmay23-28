@@ -122,17 +122,17 @@ module snn #(
     // wishbone end ----------------------------------------------------------------------------------------------------
 
     //number of timesteps
-    localparam NUM_TIMESTEPS = 100;
+    parameter NUM_TIMESTEPS = 100;
 
     //state machine parameters
-    localparam LOAD_IMG     = 3'b000;
-    localparam GEN_SPIKES   = 3'b001;
-    localparam LOAD_SPIKE   = 3'b010;
-    localparam LOAD_WEIGHT  = 3'b011;
-    localparam OPSTORE      = 3'b100;
-    localparam LEAK_VMEM    = 3'b101;
-    localparam LEAK_FIRE    = 3'b110;
-    localparam CHECK_END    = 3'b111;
+    parameter LOAD_IMG     = 3'b000;
+    parameter GEN_SPIKES   = 3'b001;
+    parameter LOAD_SPIKE   = 3'b010;
+    parameter LOAD_WEIGHT  = 3'b011;
+    parameter OPSTORE      = 3'b100;
+    parameter LEAK_VMEM    = 3'b101;
+    parameter LEAK_FIRE    = 3'b110;
+    parameter CHECK_END    = 3'b111;
 
     reg[2:0] ps;                                //present state
     wire[2:0] ns;                               //next state 
@@ -445,7 +445,7 @@ module snn #(
                     ps              = GEN_SPIKES;     
                 end
 
-        end case
+        endcase
     end
 
     //neuron module
@@ -487,21 +487,21 @@ module snn #(
         .dout1(image0_data)
     );
 
-    sky130_sram_1kbyte_1rw1r_8x1024_8 #() image_1(
-        // rw
-        .clk0(clk),
-        .csb0(image1_en),
-        .web0(image1_en),
-        .wmask0(1'b1),
-        .addr0(cpu_write_addr),
-        .din0(write_data),
-        .dout0(),
-        // r
-        .clk1(clk),
-        .csb1(1'b0),
-        .addr1(read_addr),
-        .dout1(image1_data)
-    );
+    // sky130_sram_1kbyte_1rw1r_8x1024_8 #() image_1(
+    //     // rw
+    //     .clk0(clk),
+    //     .csb0(image1_en),
+    //     .web0(image1_en),
+    //     .wmask0(1'b1),
+    //     .addr0(cpu_write_addr),
+    //     .din0(write_data),
+    //     .dout0(),
+    //     // r
+    //     .clk1(clk),
+    //     .csb1(1'b0),
+    //     .addr1(read_addr),
+    //     .dout1(image1_data)
+    // );
 
     //weight storage
     sky130_sram_1kbyte_1rw1r_8x1024_8 #() weights_0(
