@@ -36,6 +36,9 @@ module neuron_unit_test_tb;
 		v_th_i = 8'h00;
 
 		#10;
+
+
+		$finish;
 	end
 
 	neuron dut (

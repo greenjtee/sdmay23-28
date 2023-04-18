@@ -20,6 +20,8 @@ module queue #(
     reg queue_insert;
     wire [7:0] data_o;
 
+    assign valid_o = |size; // if queue has any size, output is valid
+
     always @(posedge clk) begin
         if (rst) begin
 
@@ -28,8 +30,8 @@ module queue #(
             size <= 10'b00_0000_0000;
         end else begin
 
-            queue_data_i <= data_i;
-            queue_insert <= ~insert;
+            queue_data_i    <= data_i;
+            queue_insert    <= ~insert;
 
             if (insert) begin
                 size <= size + 1;

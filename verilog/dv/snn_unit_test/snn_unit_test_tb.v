@@ -14,15 +14,18 @@
 module snn_unit_test_tb;
 	parameter PERIOD = 10;
 
-
 	reg clock;
 	reg rst;
+	integer i;
 
-	initial begin 
+	initial
+	begin 
 		clock = 0;
-		forever begin
+		forever
+		begin
 		#5 clock = ~clock;
-	end end
+		end
+	end
 
 	initial
 	begin
@@ -36,11 +39,40 @@ module snn_unit_test_tb;
 		rst <= 1'b0;
 		#PERIOD;
 
-		$stop;
+		// enable inference
+		dut.inference_en = 1;
 
+		// setup sram with values
+
+		for (i = 0; i < 10000; i=i+1)
+		begin
+			#PERIOD;
+		end
+
+		$finish;
 	end
 
 	snn dut (
+		.wb_clk_i(clock),
+		.wb_rst_i(rst),
+		.wbs_stb_i(),
+		.wbs_cyc_i(),
+		.wbs_we_i(),
+		.wbs_sel_i(),
+		.wbs_dat_i(),
+		.wbs_adr_i(),
+		.wbs_ack_o(),
+		.wbs_dat_o(),
+
+    	.la_data_in(),
+    	.la_data_out(),
+    	.la_oenb(),
+
+        .io_in(),
+        .io_out(),
+        .io_oeb(),
+
+	    .irq()
 	);
 
 endmodule
