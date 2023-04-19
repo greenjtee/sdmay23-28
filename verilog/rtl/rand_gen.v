@@ -12,8 +12,7 @@
 // SPDX-License-Identifier: Apache-2.0
 `default_nettype none
 
-module rand_gen #(
-)(
+module rand_gen (
     input clk,
     input rst,
     input [7:0] seed_i,

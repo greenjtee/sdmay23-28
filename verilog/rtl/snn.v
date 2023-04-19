@@ -283,18 +283,17 @@ module snn #(
             begin
                 output_index = 0;
             end
-
-            // not sure
-            // if (queue_valid)
-            // begin
-            //     queue_data_reg   <= queue_data;
-            // end
         end
     end
 
     //non clocked process
     always @ (*)
     begin
+        reset_pixel_index = 0;
+        reset_output_index = 0;
+        increment_output_index = 0;
+        increment_output_index = 0;
+
         // rand registers
         set_seed        = 0;
         seed            = 0;
@@ -303,6 +302,10 @@ module snn #(
         queue_insert    = 0;
         queue_read      = 0;
         queue_data_i    = 0;
+
+        // weights
+        weights0_en = 0;
+        weights1_en = 0;
 
         // state machine
         ns              = ps;
@@ -315,6 +318,7 @@ module snn #(
                 if (inference_en)
                 begin
                     ns = GEN_SPIKES;
+                    increment_pixel_index = 1;
                 end
             end
 
@@ -345,17 +349,6 @@ module snn #(
             begin
                 if (queue_valid)                                            // queue has more spikes, read next one
                 begin 
-                    if (queue_data_o < HALF_PIXELS) //desired weight value = input spike * (output spikes) + output_spike_index, distributed over two sram
-                    begin
-                        weights0_en = 1;
-                        weights0_addr_i = (queue_data_o * 10) + output_index;   
-                    end
-                    else
-                    begin
-                        weights1_en = 1;
-                        weights1_addr_i = ((queue_data_o - HALF_PIXELS) * 10) + output_index;   
-                    end
-
                     queue_read  = 1;
                     ns          = LOAD_WEIGHT;
                 end
@@ -368,7 +361,18 @@ module snn #(
             // load next weight (0 - 9) for the spiking neuron
             LOAD_WEIGHT:
             begin
-                curr_vmem           = output_vmem[output_index];                 // since vmem is a register we can just load it in as we move on to the next stage
+                if (queue_data_o < HALF_PIXELS) // desired weight value = input spike * (output spikes) + output_spike_index, distributed over two sram
+                begin
+                    weights0_en = 1;
+                    weights0_addr_o = (queue_data_o * 10) + output_index;
+                end
+                else
+                begin
+                    weights1_en = 1;
+                    weights1_addr_o = ((queue_data_o - HALF_PIXELS) * 10) + output_index;   
+                end
+
+                curr_vmem           = output_vmem[output_index];                            // since vmem is a register we can just load it in as we move on to the next stage
                 neuron_op           = NEURON_INTEGRATE;    
                 ns                  = OPSTORE;
             end
@@ -376,15 +380,15 @@ module snn #(
             // add next weight to output neuron vmem
             OPSTORE:
             begin
-                if (output_index == OUTPUTS - 1)                          // if we have processed all output neurons, go to next stage
+                if (output_index == OUTPUTS - 1)                                            // if we have processed all output neurons, go to next stage
                 begin
                     reset_output_index = 1;
-                    ns                  = LOAD_SPIKE;
+                    ns                 = LOAD_SPIKE;
                 end
-                else                                                            // otherwise, move to the next vmem
+                else                                                                        // otherwise, move to the next vmem
                 begin
-                    increment_output_index = 1;
-                    ns                  = LOAD_WEIGHT;
+                    increment_output_index  = 1;
+                    ns                      = LOAD_WEIGHT;
                 end
             end
 
@@ -463,7 +467,7 @@ module snn #(
         .dout0(),
         // r
         .clk1(clk),
-        .csb1(1'b0),
+        .csb1(1'b1),
         .addr1(image_addr_o),
         .dout1(image_data_o)
     );
@@ -482,7 +486,7 @@ module snn #(
         .dout0(),
         // r
         .clk1(clk),
-        .csb1(1'b0),
+        .csb1(1'b1),
         .addr1(weights0_addr_o),
         .dout1(weights0_data_o)
     );
@@ -500,7 +504,7 @@ module snn #(
         .dout0(),
         // r
         .clk1(clk),
-        .csb1(1'b0),
+        .csb1(1'b1),
         .addr1(weights1_addr_o),
         .dout1(weights1_data_o)
     );

@@ -48,15 +48,15 @@ module queue #(
     queue_sram(
         // rw
         .clk0(clk),
-        .csb0(1'b0),
-        .web0(queue_insert),
+        .csb0(~insert),
+        .web0(~insert),
         .wmask0(1'b1),
         .addr0(tail_address),
         .din0(queue_data_i),
         .dout0(),
         // r
         .clk1(clk),
-        .csb1(1'b0),
+        .csb1(~read),
         .addr1(head_address),
         .dout1(data_o)
     );
