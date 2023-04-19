@@ -18,7 +18,6 @@ module queue #(
 
     reg [7:0] queue_data_i;
     reg queue_insert;
-    wire [7:0] data_o;
 
     assign valid_o = |size; // if queue has any size, output is valid
 

@@ -18,6 +18,6 @@ default: test
 
 SRAM := ../../../dependencies/pdks/sky130A/libs.ref/sky130_sram_macros/verilog/sky130_sram_1kbyte_1rw1r_8x1024_8.v
 
-test: snn_unit_test_tb.v $(SRAM) ../../rtl/snn.v ../../rtl/queue.v ../../rtl/neuron.v ../../rtl/rand.v
-	iverilog -o snn_unit_test_out snn_unit_test_tb.v ../../rtl/snn.v ../../rtl/queue.v ../../rtl/neuron.v ../../rtl/rand.v $(SRAM)
+test: snn_unit_test_tb.v $(SRAM) ../../rtl/snn.v ../../rtl/queue.v ../../rtl/neuron.v ../../rtl/rand_gen.v
+	iverilog -o snn_unit_test_out snn_unit_test_tb.v ../../rtl/snn.v ../../rtl/queue.v ../../rtl/neuron.v ../../rtl/rand_gen.v $(SRAM)
 	vvp snn_unit_test_out

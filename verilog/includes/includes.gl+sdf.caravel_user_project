@@ -4,4 +4,5 @@ $USER_PROJECT_VERILOG/gl/user_proj_example.v
 $USER_PROJECT_VERILOG/gl/snn.v
 $USER_PROJECT_VERILOG/gl/neuron.v
 $USER_PROJECT_VERILOG/gl/queue.v
+$USER_PROJECT_VERILOG/gl/rand_gen.v
 $PDK_ROOT/sky130A/libs.ref/sky130_sram_macros/gl/sky130_sram_1kbyte_1rw1r_8x1024_8.v

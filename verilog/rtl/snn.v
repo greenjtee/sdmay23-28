@@ -333,7 +333,7 @@ module snn #(
                 increment_pixel_index = 1;
                 
                 // done generating spikes
-                if (image_addr_o == NUM_PIXELS)
+                if (image_addr_o == NUM_PIXELS - 1)
                 begin
                     reset_pixel_index = 1;
                     ns              = LOAD_SPIKE;
@@ -376,7 +376,7 @@ module snn #(
             // add next weight to output neuron vmem
             OPSTORE:
             begin
-                if (output_index == OUTPUTS)                          // if we have processed all output neurons, go to next stage
+                if (output_index == OUTPUTS - 1)                          // if we have processed all output neurons, go to next stage
                 begin
                     reset_output_index = 1;
                     ns                  = LOAD_SPIKE;
@@ -404,7 +404,7 @@ module snn #(
                     spike_load = 1;
                 end
 
-                if (output_index == OUTPUTS)
+                if (output_index == OUTPUTS - 1)
                 begin
                     ns = CHECK_END;
                 end
@@ -450,7 +450,9 @@ module snn #(
     );
 
     //image storage
-    sky130_sram_1kbyte_1rw1r_8x1024_8 #() image(
+    sky130_sram_1kbyte_1rw1r_8x1024_8 #(
+        .VERBOSE(0)
+    ) image(
         // rw
         .clk0(clk),
         .csb0(image_en),
@@ -467,7 +469,9 @@ module snn #(
     );
 
     //weight storage
-    sky130_sram_1kbyte_1rw1r_8x1024_8 #() weights_0(
+    sky130_sram_1kbyte_1rw1r_8x1024_8 #(
+        .VERBOSE(0)
+    ) weights_0(
         // rw
         .clk0(clk),
         .csb0(weights0_en),
@@ -483,7 +487,9 @@ module snn #(
         .dout1(weights0_data_o)
     );
 
-    sky130_sram_1kbyte_1rw1r_8x1024_8 #() weights_1(
+    sky130_sram_1kbyte_1rw1r_8x1024_8 #(
+        .VERBOSE(0)
+    ) weights_1(
         // rw
         .clk0(clk),
         .csb0(weights1_en),
@@ -500,7 +506,9 @@ module snn #(
     );
 
     // random spike rate encoding generator
-    rand spike_gen_rand(
+    rand_gen #(
+
+    ) spike_gen_rand(
         .clk(clk),
         .rst(rst),
         .seed_i(seed),
