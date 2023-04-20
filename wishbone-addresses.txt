@@ -38,7 +38,7 @@ We can send 32 bits of data per address over wishbone
 
  	MSB                                                             LSB
 	+-----------------------------------------------------------------+
-	| start inference (1) | timesteps (16) | threshold (8) | beta (8) |
+	| start inference (1) | timesteps (10) | threshold (8) | beta (8) |
 	+-----------------------------------------------------------------+
 
 0x7FFF FFFF // end of user area address space
