@@ -121,7 +121,7 @@ void main()
 		weight1_write(weights[i + NUM_WEIGHTS / 2], i);
 	}
 
-	reg_snn_control |= (0x1 << 26);
+	reg_snn_control |= 0x01000000; // (0x1 << 29);
 
 	// done initializing user area
 

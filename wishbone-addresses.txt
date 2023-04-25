@@ -38,10 +38,10 @@ All addresses are seperated by 4 (0x3000 0000, 0x3000 0004, etc.)
 
  	- Control register format
 
- 	MSB                                                             LSB
-	+---------------------------------------------------------------------------+
-	| N/A (5) | start inference (1) | timesteps (10) | threshold (8) | beta (8) |
-	+---------------------------------------------------------------------------+
+ 	MSB                                                                                 LSB
+	+-------------------------------------------------------------------------------------+
+	| N/A (3) | start inference (1) | N/A (2) | timesteps (10) | threshold (8) | beta (8) |
+	+-------------------------------------------------------------------------------------+
 
 0x7FFF FFFF // end of user area address space
 0x8000 0000 // start of next space

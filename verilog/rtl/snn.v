@@ -196,7 +196,7 @@ module snn #(
             if(wbs_we_i && valid && !wbs_ack_o && wbs_adr_i == 32'h3000_4000) begin
                 wbs_ack_o <= 1'b1;
 
-                inference_en <= wbs_dat_i[26];
+                inference_en <= wbs_dat_i[29];
                 total_timesteps <= wbs_dat_i[25:16];
                 vth <= wbs_dat_i[15:8];
                 beta <= wbs_dat_i[7:0];
@@ -205,7 +205,7 @@ module snn #(
             if(!wbs_we_i && valid && !wbs_ack_o && wbs_adr_i == 32'h3000_4000) begin
                 wbs_ack_o <= 1'b1;
 
-                wbs_dat_o <= {5'b0, inference_en, total_timesteps, vth, beta};
+                wbs_dat_o <= {3'b0, inference_en, 2'b0, total_timesteps, vth, beta};
             end
         end
     end
