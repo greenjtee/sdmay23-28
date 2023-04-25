@@ -47,30 +47,6 @@ module snn #(
     wire rst;
     assign rst = wb_rst_i;
 
-    
-    // wishbone ----------------------------------------------------------------------------------------------------
-
-    wire [3:0] wstrb;
-    reg wbs_ack_o;
-
-    wire valid;
-    assign valid = wbs_cyc_i && wbs_stb_i;
-
-    // writes
-    always @(posedge clk) begin
-        if (rst) begin
-            wbs_ack_o <= 0;
-        end else begin
-            wbs_ack_o = 1'b0;
-            if(valid && !wbs_ack_o && wbs_adr_i == 32'h3000_000) begin
-                wbs_ack_o = 1'b1;
-            end
-        end
-    end
-
-    // wishbone end ----------------------------------------------------------------------------------------------------
-
-
     // state machine parameters
     parameter WAIT          = 3'b000;
     parameter GEN_SPIKES    = 3'b001;
@@ -163,6 +139,78 @@ module snn #(
     reg [7:0] output_spike [OUTPUTS-1:0];
     
     integer i;
+
+    // wishbone ----------------------------------------------------------------------------------------------------
+
+    wire [3:0] wstrb;
+    reg wbs_ack_o;
+    reg wbs_dat_o;
+
+    wire valid;
+    assign valid = wbs_cyc_i && wbs_stb_i;
+
+    // writes
+    always @(posedge clk) begin
+        if (rst) begin
+            wbs_ack_o <= 0;
+        end else begin
+            wbs_ack_o <= 1'b0;
+            image_en <= 1'b0;
+
+            weights0_en <= 1'b0;
+            weights1_en <= 1'b0;
+
+            // image data - reads from ps
+            if(wbs_we_i && valid && !wbs_ack_o && (wbs_adr_i >= 32'h3000_0000 && wbs_adr_i < 32'h3000_1000)) begin
+                wbs_ack_o <= 1'b1;
+
+                image_addr_i <= (wbs_adr_i - 32'h3000_0000) >> 2;
+                image_data_i <= wbs_dat_i[7:0];
+                image_en <= 1'b1;
+            end
+
+            // weight data - reads from ps
+            if(wbs_we_i && valid && !wbs_ack_o && (wbs_adr_i >= 32'h3000_1000 && wbs_adr_i < 32'h3000_2000)) begin
+                wbs_ack_o <= 1'b1;
+
+                weights0_addr_i <= (wbs_adr_i - 32'h3000_1000) >> 2;
+                weights0_data_i <= wbs_dat_i[7:0];
+                weights0_en <= 1'b1;
+            end
+            if(wbs_we_i && valid && !wbs_ack_o && (wbs_adr_i >= 32'h3000_2000 && wbs_adr_i < 32'h3000_3000)) begin
+                wbs_ack_o <= 1'b1;
+
+                weights1_addr_i <= (wbs_adr_i - 32'h3000_2000) >> 2;
+                weights1_data_i <= wbs_dat_i[7:0];
+                weights1_en <= 1'b1;
+            end
+
+            // output data - writes to ps
+            if(!wbs_we_i && valid && !wbs_ack_o && (wbs_adr_i >= 32'h3000_3000 && wbs_adr_i < 32'h3000_4000)) begin
+                wbs_ack_o <= 1'b1;
+
+                wbs_dat_o <= { 24'b0, output_spike[wbs_adr_i - 32'h3000_3000]};
+            end
+
+            // control signals - reads from ps
+            if(wbs_we_i && valid && !wbs_ack_o && wbs_adr_i == 32'h3000_4000) begin
+                wbs_ack_o <= 1'b1;
+
+                inference_en <= wbs_dat_i[26];
+                total_timesteps <= wbs_dat_i[25:16];
+                vth <= wbs_dat_i[15:8];
+                beta <= wbs_dat_i[7:0];
+            end
+            // control signals - writes to ps
+            if(!wbs_we_i && valid && !wbs_ack_o && wbs_adr_i == 32'h3000_4000) begin
+                wbs_ack_o <= 1'b1;
+
+                wbs_dat_o <= {5'b0, inference_en, total_timesteps, vth, beta};
+            end
+        end
+    end
+
+    // wishbone end ----------------------------------------------------------------------------------------------------
 
     // clocked process
     always @ (posedge(clk))
@@ -328,7 +376,7 @@ module snn #(
             GEN_SPIKES:
             begin
                 // spike generated, insert in queue
-                if (rand_val < image_data_o || 1) // TODO: remove 1 from testing
+                if (rand_val < image_data_o)
                 begin
                     queue_insert = 1;
                     queue_data_i = image_addr_o;
@@ -455,7 +503,7 @@ module snn #(
 
     //image storage
     sky130_sram_1kbyte_1rw1r_8x1024_8 #(
-        .VERBOSE(0)
+        .VERBOSE(1)
     ) image(
         // rw
         .clk0(clk),
@@ -474,7 +522,7 @@ module snn #(
 
     //weight storage
     sky130_sram_1kbyte_1rw1r_8x1024_8 #(
-        .VERBOSE(0)
+        .VERBOSE(1)
     ) weights_0(
         // rw
         .clk0(clk),
@@ -492,7 +540,7 @@ module snn #(
     );
 
     sky130_sram_1kbyte_1rw1r_8x1024_8 #(
-        .VERBOSE(0)
+        .VERBOSE(1)
     ) weights_1(
         // rw
         .clk0(clk),
