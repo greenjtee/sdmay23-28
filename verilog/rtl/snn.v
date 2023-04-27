@@ -2,7 +2,7 @@
 
 module snn #(
     parameter WEIGHTS_BASE = 32'h3000_0000,
-    parameter DIM_X = 14,
+    parameter DIM_X = 9,
     parameter DIM_Y = DIM_X,
     parameter NUM_PIXELS = DIM_X * DIM_Y,
     parameter OUTPUTS = 10,
@@ -47,6 +47,8 @@ module snn #(
     wire rst;
     assign rst = wb_rst_i;
 
+    reg irq;
+
     // state machine parameters
     parameter WAIT          = 3'b000;
     parameter GEN_SPIKES    = 3'b001;
@@ -68,15 +70,15 @@ module snn #(
     reg [9:0] curr_timestep;
     reg [7:0] output_index;
 
-    reg vmem_load;
-    reg spike_load;
-    reg timestep_load;
+    reg vmem_store;
+    reg spike_store;
 
     reg increment_timestep;
     reg increment_output_index;
     reg increment_pixel_index;
     reg reset_pixel_index;
     reg reset_output_index;
+    reg trigger_interrupt;
 
     // image sram signals
     reg image_en;
@@ -84,23 +86,17 @@ module snn #(
     reg [7:0] image_data_i;
 
     reg [9:0] image_addr_o;
+    reg image_read_o;
     wire [7:0] image_data_o;
 
-    // weights 0 sram signals
-    reg weights0_en;
-    reg [9:0] weights0_addr_i;
-    reg [7:0] weights0_data_i;
+    // weights sram signals
+    reg weights_en;
+    reg [9:0] weights_addr_i;
+    reg [7:0] weights_data_i;
 
-    reg [9:0] weights0_addr_o;
-    wire [7:0] weights0_data_o;
-
-    // weights 1 sram signals
-    reg weights1_en;
-    reg [9:0] weights1_addr_i;
-    reg [7:0] weights1_data_i;
-
-    reg [9:0] weights1_addr_o;
-    wire [7:0] weights1_data_o;
+    reg [9:0] weights_addr_o;
+    reg weights_read_o;
+    wire [7:0] weights_data_o;
 
     // rng signals
     reg [7:0] seed;
@@ -151,14 +147,22 @@ module snn #(
 
     // writes
     always @(posedge clk) begin
+
         if (rst) begin
             wbs_ack_o <= 0;
+            inference_en <= 0;
+            beta <= 0;
+            vth <= 0;
+            total_timesteps = DEFAULT_TIMESTEPS;
+
+            wbs_dat_o <= 0;
+
         end else begin
             wbs_ack_o <= 1'b0;
             image_en <= 1'b0;
+            weights_en <= 1'b0;
 
-            weights0_en <= 1'b0;
-            weights1_en <= 1'b0;
+            wbs_dat_o <= 0;
 
             // image data - reads from ps
             if(wbs_we_i && valid && !wbs_ack_o && (wbs_adr_i >= 32'h3000_0000 && wbs_adr_i < 32'h3000_1000)) begin
@@ -173,16 +177,9 @@ module snn #(
             if(wbs_we_i && valid && !wbs_ack_o && (wbs_adr_i >= 32'h3000_1000 && wbs_adr_i < 32'h3000_2000)) begin
                 wbs_ack_o <= 1'b1;
 
-                weights0_addr_i <= (wbs_adr_i - 32'h3000_1000) >> 2;
-                weights0_data_i <= wbs_dat_i[7:0];
-                weights0_en <= 1'b1;
-            end
-            if(wbs_we_i && valid && !wbs_ack_o && (wbs_adr_i >= 32'h3000_2000 && wbs_adr_i < 32'h3000_3000)) begin
-                wbs_ack_o <= 1'b1;
-
-                weights1_addr_i <= (wbs_adr_i - 32'h3000_2000) >> 2;
-                weights1_data_i <= wbs_dat_i[7:0];
-                weights1_en <= 1'b1;
+                weights_addr_i <= (wbs_adr_i - 32'h3000_1000) >> 2;
+                weights_data_i <= wbs_dat_i[7:0];
+                weights_en <= 1;
             end
 
             // output data - writes to ps
@@ -196,7 +193,7 @@ module snn #(
             if(wbs_we_i && valid && !wbs_ack_o && wbs_adr_i == 32'h3000_4000) begin
                 wbs_ack_o <= 1'b1;
 
-                inference_en <= wbs_dat_i[29];
+                inference_en <= wbs_dat_i[28];
                 total_timesteps <= wbs_dat_i[25:16];
                 vth <= wbs_dat_i[15:8];
                 beta <= wbs_dat_i[7:0];
@@ -224,9 +221,8 @@ module snn #(
             curr_timestep = 0;
             output_index = 0;
 
-            vmem_load = 0;
-            spike_load = 0;
-            timestep_load = 0;
+            vmem_store = 0;
+            spike_store = 0;
 
             increment_timestep = 0;
             increment_output_index = 0;
@@ -235,22 +231,10 @@ module snn #(
             reset_output_index = 0;
 
             // image sram signals
-            image_en = 0;
-            image_addr_i = 0;
-            image_data_i = 0;
             image_addr_o = 0;
 
-            // weights 0 sram signals
-            weights0_en = 0;
-            weights0_addr_i = 0;
-            weights0_data_i = 0;
-            weights0_addr_o = 0;
-
-            // weights 1 sram signals
-            weights1_en = 0;
-            weights1_addr_i = 0;
-            weights1_data_i = 0;
-            weights1_addr_o = 0;
+            // weights sram signals
+            weights_addr_o = 0;
 
             // rng signals
             seed = 0;
@@ -269,11 +253,6 @@ module snn #(
             neuron_op = 0;
 
             // control register signals
-            inference_en = 0;
-            beta = 0;
-            vth = 0;
-            total_timesteps = DEFAULT_TIMESTEPS;
-
             inference_done = 0;
 
             // output neuron specific registers
@@ -283,6 +262,9 @@ module snn #(
                 output_spike[i] <= 0;
             end
 
+            //irq
+            irq = 3'b000;
+
         end
         else
         begin // update registers
@@ -290,24 +272,24 @@ module snn #(
             // rand register updates
             set_seed            <= set_seed;
             seed                <= seed;
-
+            
             // queue register updates
             ps                      <= ns;
             
             // enable signal for loading vmem register
-            if (vmem_load)
+            if (vmem_store)
             begin
                 output_vmem[output_index] <= neuron_vmem_o;
             end
             
             // enable signal for loading spike register
-            if (spike_load)
+            if (spike_store)
             begin
                 output_spike[output_index] <= output_spike[output_index] + 1;
             end
             
             // enable signal for incrementing timestep
-            if (timestep_load)
+            if (increment_timestep)
             begin
                 curr_timestep <= curr_timestep + 1;
             end
@@ -331,6 +313,11 @@ module snn #(
             begin
                 output_index = 0;
             end
+
+            if (trigger_interrupt)
+            begin
+                irq = 3'b001;
+            end
         end
     end
 
@@ -341,6 +328,8 @@ module snn #(
         reset_output_index = 0;
         increment_output_index = 0;
         increment_output_index = 0;
+        increment_timestep = 0;
+        trigger_interrupt = 0;
 
         // rand registers
         set_seed        = 0;
@@ -351,9 +340,10 @@ module snn #(
         queue_read      = 0;
         queue_data_i    = 0;
 
-        // weights
-        weights0_en = 0;
-        weights1_en = 0;
+        image_read_o = 0;
+        weights_read_o = 0;
+        vmem_store = 0;
+
 
         // state machine
         ns              = ps;
@@ -367,6 +357,7 @@ module snn #(
                 begin
                     ns = GEN_SPIKES;
                     increment_pixel_index = 1;
+                    image_read_o = 1;
                 end
             end
 
@@ -376,6 +367,7 @@ module snn #(
             GEN_SPIKES:
             begin
                 // spike generated, insert in queue
+                image_read_o = 1;
                 if (rand_val < image_data_o)
                 begin
                     queue_insert = 1;
@@ -398,6 +390,8 @@ module snn #(
                 if (queue_valid)                                            // queue has more spikes, read next one
                 begin 
                     queue_read  = 1;
+                    weights_read_o = 1;
+
                     ns          = LOAD_WEIGHT;
                 end
                 else                                                            // queue has no more spikes, go to next stage
@@ -409,16 +403,8 @@ module snn #(
             // load next weight (0 - 9) for the spiking neuron
             LOAD_WEIGHT:
             begin
-                if (queue_data_o < HALF_PIXELS) // desired weight value = input spike * (output spikes) + output_spike_index, distributed over two sram
-                begin
-                    weights0_en = 1;
-                    weights0_addr_o = (queue_data_o * 10) + output_index;
-                end
-                else
-                begin
-                    weights1_en = 1;
-                    weights1_addr_o = ((queue_data_o - HALF_PIXELS) * 10) + output_index;   
-                end
+                weights_read_o = 1;
+                weights_addr_o = (queue_data_o * 10) + output_index;
 
                 curr_vmem           = output_vmem[output_index];                            // since vmem is a register we can just load it in as we move on to the next stage
                 neuron_op           = NEURON_INTEGRATE;    
@@ -428,6 +414,8 @@ module snn #(
             // add next weight to output neuron vmem
             OPSTORE:
             begin
+                vmem_store = 1;
+
                 if (output_index == OUTPUTS - 1)                                            // if we have processed all output neurons, go to next stage
                 begin
                     reset_output_index = 1;
@@ -453,11 +441,12 @@ module snn #(
             begin
                 if (neuron_spike_o)
                 begin
-                    spike_load = 1;
+                    spike_store = 1;
                 end
 
                 if (output_index == OUTPUTS - 1)
                 begin
+                    increment_timestep = 1;
                     ns = CHECK_END;
                 end
                 else
@@ -470,10 +459,15 @@ module snn #(
             // if we have done all timesteps, we are done
             CHECK_END:
             begin
-                if (curr_timestep == total_timesteps) begin
-                    inference_done        = 1;
-                end else begin
-                    ps              = GEN_SPIKES;     
+                if (curr_timestep == total_timesteps)
+                begin
+                    inference_en = 0;
+                    trigger_interrupt = 1;
+                    ns = WAIT;
+                end
+                else
+                begin
+                    ns = GEN_SPIKES;     
                 end
             end
         endcase
@@ -507,15 +501,15 @@ module snn #(
     ) image(
         // rw
         .clk0(clk),
-        .csb0(image_en),
-        .web0(image_en),
+        .csb0(~image_en),
+        .web0(~image_en),
         .wmask0(1'b1),
         .addr0(image_addr_i),
         .din0(image_data_i),
         .dout0(),
         // r
         .clk1(clk),
-        .csb1(1'b1),
+        .csb1(~image_read_o),
         .addr1(image_addr_o),
         .dout1(image_data_o)
     );
@@ -523,38 +517,20 @@ module snn #(
     //weight storage
     sky130_sram_1kbyte_1rw1r_8x1024_8 #(
         .VERBOSE(1)
-    ) weights_0(
+    ) weights(
         // rw
         .clk0(clk),
-        .csb0(weights0_en),
-        .web0(weights0_en),
+        .csb0(~weights_en),
+        .web0(~weights_en),
         .wmask0(1'b1),
-        .addr0(weights0_addr_i),
-        .din0(weights0_data_i),
+        .addr0(weights_addr_i),
+        .din0(weights_data_i),
         .dout0(),
         // r
         .clk1(clk),
-        .csb1(1'b1),
-        .addr1(weights0_addr_o),
-        .dout1(weights0_data_o)
-    );
-
-    sky130_sram_1kbyte_1rw1r_8x1024_8 #(
-        .VERBOSE(1)
-    ) weights_1(
-        // rw
-        .clk0(clk),
-        .csb0(weights1_en),
-        .web0(weights1_en),
-        .wmask0(1'b1),
-        .addr0(weights1_addr_i),
-        .din0(weights1_data_i),
-        .dout0(),
-        // r
-        .clk1(clk),
-        .csb1(1'b1),
-        .addr1(weights1_addr_o),
-        .dout1(weights1_data_o)
+        .csb1(~weights_read_o),
+        .addr1(weights_addr_o),
+        .dout1(weights_data_o)
     );
 
     // random spike rate encoding generator
