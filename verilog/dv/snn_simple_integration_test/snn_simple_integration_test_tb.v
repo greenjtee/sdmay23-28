@@ -948,9 +948,10 @@ module snn_simple_integration_test_tb;
 		#PERIOD;
 
 		dut.inference_en = 1'b1;
-		// dut.ps = 3'b001;
+		dut.beta = 8'hFA;
+		dut.vth = 8'hC5;
 
-		for (i=0; i<1000; i=i+1)
+		for (i=0; i<10000; i=i+1)
 		begin
 			#PERIOD;
 		end

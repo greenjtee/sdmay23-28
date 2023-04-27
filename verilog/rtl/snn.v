@@ -110,6 +110,7 @@ module snn #(
     reg [9:0] weights_addr_o;
     reg weights_read_o;
     wire [7:0] weights_data_o;
+    reg [7:0] weights_data_reg;
 
     // rng signals
     reg [7:0] seed;
@@ -151,6 +152,8 @@ module snn #(
     reg [OUTPUTS-1:0] output_vmem_index;
     reg [OUTPUTS-1:0] output_spike_index;
     reg [9:0] spiking_neuron_index;
+
+    reg output_weight_store;
 
     // wires for easy viewing
     wire [7:0] output_spike_count_0 = output_spike[0];
@@ -303,6 +306,8 @@ module snn #(
             // neuron vmem
             neuron_vmem_reg = 0;
 
+            output_weight_store = 0;
+
             // output neuron specific registers
             for (i = 0; i < OUTPUTS; i = i + 1)
             begin
@@ -325,7 +330,7 @@ module snn #(
             
             // queue register updates
             ps                      <= ns;
-            
+
             // enable signal for loading vmem register
             if (vmem_store)
             begin
@@ -369,6 +374,11 @@ module snn #(
                 irq = 3'b001;
             end
 
+            if (output_weight_store)
+            begin
+                weights_data_reg = weights_data_o;
+            end
+
             // if (insert_spike)
             // begin
             //     queue_insert = 1;
@@ -401,6 +411,7 @@ module snn #(
         image_read_o = 0;
 
         vmem_store = 0;
+        output_weight_store = 0;
 
         weights_read_o = 0;
 
@@ -506,6 +517,7 @@ module snn #(
             LOAD_WEIGHT_2:
             begin
                 increment_output_index = 1;
+                output_weight_store = 1;
 
                 // ns = LOAD_VMEM;
                 ns = OPSTORE;
@@ -520,6 +532,7 @@ module snn #(
             OPSTORE:
             begin
                 vmem_store = 1;
+
                 ns = LOAD_WEIGHT;
 
                 if (output_index == OUTPUTS)                                            // if we have processed all output neurons, go to next stage
@@ -533,6 +546,7 @@ module snn #(
             LEAK_VMEM:
             begin
                 curr_vmem   = output_vmem[output_index];
+                output_spike_index = output_index;
                 neuron_op   = NEURON_LEAK_FIRE;
                 ns          = LEAK_FIRE;
             end
@@ -576,7 +590,7 @@ module snn #(
 
     //neuron module
     neuron #() neuron(
-        .weight(weights_data_o),
+        .weight(weights_data_reg),
         .v_mem_in(curr_vmem),
         .beta(beta),
         .function_sel(neuron_op),

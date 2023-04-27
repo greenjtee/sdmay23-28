@@ -27,13 +27,19 @@ module neuron #(
 
     wire [SIZE-1:0] v_mem_decayed;
     wire [SIZE-1:0] v_mem_added;
+
+    wire [2*SIZE-1:0] v_mem_mult;
+    wire overflow;
     
     //basic functions for decay and addition of weight
-    assign v_mem_decayed = v_mem_in * beta;
+    assign v_mem_mult = (v_mem_in * beta);
+    assign v_mem_decayed = v_mem_mult >> 8;
     assign v_mem_added = v_mem_in + weight;
 
+    assign overflow = v_mem_added < v_mem_in;
+
     //assign a spike if we pass our threshold voltage
-    assign spike = v_mem_decayed > v_th ? 1 : 0;
+    assign spike = overflow ? 1 : (v_mem_decayed > v_th ? 1 : 0);
 
     assign v_mem_out = function_sel ? (spike ? 0 : v_mem_decayed) : 
                                       (v_mem_added);
