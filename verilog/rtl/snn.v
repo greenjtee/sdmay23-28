@@ -50,25 +50,33 @@ module snn #(
     reg irq;
 
     // state machine parameters
-    parameter WAIT          = 3'b000;
-    parameter GEN_SPIKES    = 3'b001;
-    parameter LOAD_SPIKE    = 3'b010;
-    parameter LOAD_WEIGHT   = 3'b011;
-    parameter OPSTORE       = 3'b100;
-    parameter LEAK_VMEM     = 3'b101;
-    parameter LEAK_FIRE     = 3'b110;
-    parameter CHECK_END     = 3'b111;
+    parameter WAIT          = 4'h0;
+    parameter LOAD_PIXEL    = 4'h1;
+    parameter LOAD_PIXEL_2  = 4'h2;
+    parameter LOAD_PIXEL_3  = 4'h3;
+    parameter LOAD_PIXEL_4  = 4'h4;
+    parameter GEN_SPIKE     = 4'h5;
+    parameter LOAD_SPIKE    = 4'h6;
+    parameter SAVE_NEURON_INDEX = 4'h7;
+    parameter LOAD_WEIGHT   = 4'h8;
+    parameter LOAD_WEIGHT_2 = 4'h9;
+    parameter LOAD_VMEM     = 4'hA;
+    parameter OPSTORE       = 4'hB;
+    parameter LEAK_VMEM     = 4'hC;
+    parameter LEAK_FIRE     = 4'hD;
+    parameter CHECK_END     = 4'hE;
 
     // neuron operations
     parameter NEURON_INTEGRATE  = 1'b0;
     parameter NEURON_LEAK_FIRE  = 1'b1;
 
     // state machine signals
-    reg [2:0] ps;                                // present state
-    reg [2:0] ns;                               // next state 
+    reg [3:0] ps;                                // present state
+    reg [3:0] ns;                               // next state 
 
     reg [9:0] curr_timestep;
     reg [7:0] output_index;
+
 
     reg vmem_store;
     reg spike_store;
@@ -79,15 +87,20 @@ module snn #(
     reg reset_pixel_index;
     reg reset_output_index;
     reg trigger_interrupt;
+    reg insert_spike;
 
     // image sram signals
     reg image_en;
     reg [9:0] image_addr_i;
-    reg [7:0] image_data_i;
-
     reg [9:0] image_addr_o;
-    reg image_read_o;
+    reg [7:0] image_data_i;
     wire [7:0] image_data_o;
+
+    reg [7:0] pixel_index;
+    reg image_read_o;
+
+    wire [7:0] pixel;
+    reg [9:0] last_pixel;
 
     // weights sram signals
     reg weights_en;
@@ -118,6 +131,7 @@ module snn #(
 
     // neuron module signals
     wire neuron_spike_o;
+    reg [7:0] neuron_vmem_reg;
     wire [7:0] neuron_vmem_o;
 
     reg neuron_op;
@@ -133,6 +147,34 @@ module snn #(
     // output neuron specific registers
     reg [7:0] output_vmem [OUTPUTS-1:0];
     reg [7:0] output_spike [OUTPUTS-1:0];
+
+    reg [OUTPUTS-1:0] output_vmem_index;
+    reg [OUTPUTS-1:0] output_spike_index;
+    reg [9:0] spiking_neuron_index;
+
+    // wires for easy viewing
+    wire [7:0] output_spike_count_0 = output_spike[0];
+    wire [7:0] output_spike_count_1 = output_spike[1];
+    wire [7:0] output_spike_count_2 = output_spike[2];
+    wire [7:0] output_spike_count_3 = output_spike[3];
+    wire [7:0] output_spike_count_4 = output_spike[4];
+    wire [7:0] output_spike_count_5 = output_spike[5];
+    wire [7:0] output_spike_count_6 = output_spike[6];
+    wire [7:0] output_spike_count_7 = output_spike[7];
+    wire [7:0] output_spike_count_8 = output_spike[8];
+    wire [7:0] output_spike_count_9 = output_spike[9];
+
+    // wires for easy viewing
+    wire [7:0] output_vmem_0 = output_vmem[0];
+    wire [7:0] output_vmem_1 = output_vmem[1];
+    wire [7:0] output_vmem_2 = output_vmem[2];
+    wire [7:0] output_vmem_3 = output_vmem[3];
+    wire [7:0] output_vmem_4 = output_vmem[4];
+    wire [7:0] output_vmem_5 = output_vmem[5];
+    wire [7:0] output_vmem_6 = output_vmem[6];
+    wire [7:0] output_vmem_7 = output_vmem[7];
+    wire [7:0] output_vmem_8 = output_vmem[8];
+    wire [7:0] output_vmem_9 = output_vmem[9];
     
     integer i;
 
@@ -221,14 +263,18 @@ module snn #(
             curr_timestep = 0;
             output_index = 0;
 
+            pixel_index = 0;
+            last_pixel = 0;
+
             vmem_store = 0;
             spike_store = 0;
 
             increment_timestep = 0;
             increment_output_index = 0;
             increment_pixel_index = 0;
-            reset_pixel_index = 0;
+
             reset_output_index = 0;
+            reset_pixel_index = 0;
 
             // image sram signals
             image_addr_o = 0;
@@ -243,7 +289,6 @@ module snn #(
             // queue signals
             queue_insert = 0;
             queue_read = 0;
-            queue_data_i = 0;
 
             // current value signals
             curr_weight = 0;
@@ -254,6 +299,9 @@ module snn #(
 
             // control register signals
             inference_done = 0;
+
+            // neuron vmem
+            neuron_vmem_reg = 0;
 
             // output neuron specific registers
             for (i = 0; i < OUTPUTS; i = i + 1)
@@ -268,10 +316,12 @@ module snn #(
         end
         else
         begin // update registers
-
             // rand register updates
             set_seed            <= set_seed;
             seed                <= seed;
+
+            last_pixel <= pixel;
+            neuron_vmem_reg <= neuron_vmem_o;
             
             // queue register updates
             ps                      <= ns;
@@ -279,13 +329,13 @@ module snn #(
             // enable signal for loading vmem register
             if (vmem_store)
             begin
-                output_vmem[output_index] <= neuron_vmem_o;
+                output_vmem[output_vmem_index] <= neuron_vmem_reg;
             end
             
             // enable signal for loading spike register
             if (spike_store)
             begin
-                output_spike[output_index] <= output_spike[output_index] + 1;
+                output_spike[output_spike_index] <= output_spike[output_spike_index] + 1;
             end
             
             // enable signal for incrementing timestep
@@ -306,7 +356,7 @@ module snn #(
 
             if (reset_pixel_index)
             begin
-                image_addr_o = 0;
+                pixel_index = 0;
             end
 
             if (reset_output_index)
@@ -318,6 +368,12 @@ module snn #(
             begin
                 irq = 3'b001;
             end
+
+            // if (insert_spike)
+            // begin
+            //     queue_insert = 1;
+            //     queue_data_i = pixel_index;
+            // end
         end
     end
 
@@ -325,25 +381,28 @@ module snn #(
     always @ (*)
     begin
         reset_pixel_index = 0;
+
         reset_output_index = 0;
+
         increment_output_index = 0;
+
         increment_output_index = 0;
+
+        increment_pixel_index = 0;
+
         increment_timestep = 0;
+
         trigger_interrupt = 0;
 
-        // rand registers
-        set_seed        = 0;
-        seed            = 0;
+        insert_spike = 0;
 
-        // queue registers
-        queue_insert    = 0;
-        queue_read      = 0;
-        queue_data_i    = 0;
+        queue_read = 0;
 
         image_read_o = 0;
-        weights_read_o = 0;
+
         vmem_store = 0;
 
+        weights_read_o = 0;
 
         // state machine
         ns              = ps;
@@ -355,29 +414,54 @@ module snn #(
                 ns = WAIT;
                 if (inference_en)
                 begin
-                    ns = GEN_SPIKES;
-                    increment_pixel_index = 1;
-                    image_read_o = 1;
+                    ns = LOAD_PIXEL;
                 end
             end
+
+            LOAD_PIXEL:
+            begin
+                queue_insert = 0;
+                pixel_index = image_addr_o;
+                image_read_o = 1;
+
+                ns = LOAD_PIXEL_2;
+            end
+
+            LOAD_PIXEL_2:
+            begin
+                // image_read_o = 1;
+                // increment_pixel_index = 1;
+                increment_pixel_index = 1;
+                ns = GEN_SPIKE;
+            end
+
+            // LOAD_PIXEL_3:
+            // begin
+            //     image_read_o = 1;
+            //     ns = GEN_SPIKE;
+            // end
+            
+            // LOAD_PIXEL_4:
+            // begin
+            //     image_read_o = 1;
+            //     ns = GEN_SPIKE;
+            // end
 
             // if next random val is greater than pixel val, generate a spike
             // if we are at the last pixel, move to load spike state
             // otherwise, go to next pixel
-            GEN_SPIKES:
+            GEN_SPIKE:
             begin
-                // spike generated, insert in queue
-                image_read_o = 1;
-                if (rand_val < image_data_o)
+                ns = LOAD_PIXEL;
+
+                if (rand_val < image_data_o) // spike generated, insert in queue
                 begin
                     queue_insert = 1;
-                    queue_data_i = image_addr_o;
+                    queue_data_i = pixel_index;
                 end
 
-                increment_pixel_index = 1;
-                
                 // done generating spikes
-                if (image_addr_o == NUM_PIXELS - 1)
+                if (pixel_index == NUM_PIXELS)
                 begin
                     reset_pixel_index = 1;
                     ns              = LOAD_SPIKE;
@@ -390,9 +474,9 @@ module snn #(
                 if (queue_valid)                                            // queue has more spikes, read next one
                 begin 
                     queue_read  = 1;
-                    weights_read_o = 1;
+                    // weights_read_o = 1;
 
-                    ns          = LOAD_WEIGHT;
+                    ns          = SAVE_NEURON_INDEX;
                 end
                 else                                                            // queue has no more spikes, go to next stage
                 begin
@@ -400,31 +484,48 @@ module snn #(
                 end
             end
 
+            SAVE_NEURON_INDEX:
+            begin
+                spiking_neuron_index = queue_data_o;
+
+                ns = LOAD_WEIGHT;
+            end
+
             // load next weight (0 - 9) for the spiking neuron
             LOAD_WEIGHT:
             begin
-                weights_read_o = 1;
-                weights_addr_o = (queue_data_o * 10) + output_index;
 
-                curr_vmem           = output_vmem[output_index];                            // since vmem is a register we can just load it in as we move on to the next stage
-                neuron_op           = NEURON_INTEGRATE;    
-                ns                  = OPSTORE;
+                weights_read_o = 1;
+                weights_addr_o = (spiking_neuron_index * 10) + output_index;
+                curr_vmem = output_vmem[output_index];
+                output_vmem_index = output_index;
+
+                ns = LOAD_WEIGHT_2;
             end
+
+            LOAD_WEIGHT_2:
+            begin
+                increment_output_index = 1;
+
+                // ns = LOAD_VMEM;
+                ns = OPSTORE;
+            end
+
+            // LOAD_VMEM:
+            // begin
+            //     ns = OPSTORE;
+            // end
 
             // add next weight to output neuron vmem
             OPSTORE:
             begin
                 vmem_store = 1;
+                ns = LOAD_WEIGHT;
 
-                if (output_index == OUTPUTS - 1)                                            // if we have processed all output neurons, go to next stage
+                if (output_index == OUTPUTS)                                            // if we have processed all output neurons, go to next stage
                 begin
                     reset_output_index = 1;
                     ns                 = LOAD_SPIKE;
-                end
-                else                                                                        // otherwise, move to the next vmem
-                begin
-                    increment_output_index  = 1;
-                    ns                      = LOAD_WEIGHT;
                 end
             end
 
@@ -467,7 +568,7 @@ module snn #(
                 end
                 else
                 begin
-                    ns = GEN_SPIKES;     
+                    ns = GEN_SPIKE;     
                 end
             end
         endcase
@@ -475,7 +576,7 @@ module snn #(
 
     //neuron module
     neuron #() neuron(
-        .weight(curr_weight),
+        .weight(weights_data_o),
         .v_mem_in(curr_vmem),
         .beta(beta),
         .function_sel(neuron_op),
@@ -489,8 +590,8 @@ module snn #(
         .clk(clk),
         .rst(rst),
         .insert(queue_insert),
-        .read(queue_read),
         .data_i(queue_data_i),
+        .read(queue_read),
         .valid_o(queue_valid),
         .data_o(queue_data_o)
     );

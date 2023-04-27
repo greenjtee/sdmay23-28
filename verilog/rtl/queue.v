@@ -32,7 +32,7 @@ module queue #(
             queue_data_i    <= data_i;
             queue_insert    <= ~insert;
 
-            if (insert) begin
+            if (~queue_insert) begin
                 size <= size + 1;
                 tail_address <= tail_address + 1;
             end else if (read) begin
@@ -48,8 +48,8 @@ module queue #(
     queue_sram(
         // rw
         .clk0(clk),
-        .csb0(~insert),
-        .web0(~insert),
+        .csb0(queue_insert),
+        .web0(queue_insert),
         .wmask0(1'b1),
         .addr0(tail_address),
         .din0(queue_data_i),

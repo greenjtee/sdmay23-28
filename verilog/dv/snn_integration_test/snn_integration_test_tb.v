@@ -43,7 +43,7 @@ module snn_integration_test_tb;
 		$dumpvars(0, snn_integration_test_tb);
 
 		// Repeat cycles of 1000 clock edges as needed to complete testbench
-		repeat (250) begin
+		repeat (5000) begin
 			repeat (1000) @(posedge clock);
 			// $display("+1000 cycles");
 		end
