@@ -951,7 +951,7 @@ module snn_simple_integration_test_tb;
 		dut.beta = 8'hFA;
 		dut.vth = 8'hC5;
 
-		for (i=0; i<10000; i=i+1)
+		for (i=0; i<100000; i=i+1)
 		begin
 			#PERIOD;
 		end

@@ -361,7 +361,7 @@ module snn #(
 
             if (reset_pixel_index)
             begin
-                pixel_index = 0;
+                image_addr_o = 0;
             end
 
             if (reset_output_index)
@@ -390,9 +390,9 @@ module snn #(
     //non clocked process
     always @ (*)
     begin
-        reset_pixel_index = 0;
+        // reset_pixel_index = 0;
 
-        reset_output_index = 0;
+        // reset_output_index = 0;
 
         increment_output_index = 0;
 
@@ -420,7 +420,7 @@ module snn #(
 
         case(ps)
             // wait for inference start bit to be set, this allows the user to load image and weight data, control registers, etc
-            WAIT:
+            WAIT: // 0
             begin
                 ns = WAIT;
                 if (inference_en)
@@ -429,7 +429,7 @@ module snn #(
                 end
             end
 
-            LOAD_PIXEL:
+            LOAD_PIXEL: // 1
             begin
                 queue_insert = 0;
                 pixel_index = image_addr_o;
@@ -461,7 +461,7 @@ module snn #(
             // if next random val is greater than pixel val, generate a spike
             // if we are at the last pixel, move to load spike state
             // otherwise, go to next pixel
-            GEN_SPIKE:
+            GEN_SPIKE: // 5
             begin
                 ns = LOAD_PIXEL;
 
@@ -474,13 +474,14 @@ module snn #(
                 // done generating spikes
                 if (pixel_index == NUM_PIXELS)
                 begin
-                    reset_pixel_index = 1;
+                    // reset_pixel_index = 1;
+                    // pixel_index = 0;
                     ns              = LOAD_SPIKE;
                 end
             end
 
             // get neuron that spiked out of queue
-            LOAD_SPIKE:
+            LOAD_SPIKE: // 6
             begin
                 if (queue_valid)                                            // queue has more spikes, read next one
                 begin 
@@ -495,7 +496,7 @@ module snn #(
                 end
             end
 
-            SAVE_NEURON_INDEX:
+            SAVE_NEURON_INDEX: // 7
             begin
                 spiking_neuron_index = queue_data_o;
 
@@ -503,7 +504,7 @@ module snn #(
             end
 
             // load next weight (0 - 9) for the spiking neuron
-            LOAD_WEIGHT:
+            LOAD_WEIGHT: // 8
             begin
 
                 weights_read_o = 1;
@@ -523,13 +524,8 @@ module snn #(
                 ns = OPSTORE;
             end
 
-            // LOAD_VMEM:
-            // begin
-            //     ns = OPSTORE;
-            // end
-
             // add next weight to output neuron vmem
-            OPSTORE:
+            OPSTORE: // B
             begin
                 vmem_store = 1;
 
@@ -537,13 +533,14 @@ module snn #(
 
                 if (output_index == OUTPUTS)                                            // if we have processed all output neurons, go to next stage
                 begin
-                    reset_output_index = 1;
+                    // reset_output_index = 1;
+                    output_index = 0;
                     ns                 = LOAD_SPIKE;
                 end
             end
 
             // get next output vmem from registers
-            LEAK_VMEM:
+            LEAK_VMEM: // C
             begin
                 curr_vmem   = output_vmem[output_index];
                 output_spike_index = output_index;
@@ -552,14 +549,14 @@ module snn #(
             end
 
             // leak the vmem and fire if necessary
-            LEAK_FIRE:
+            LEAK_FIRE: // D
             begin
                 if (neuron_spike_o)
                 begin
                     spike_store = 1;
                 end
 
-                if (output_index == OUTPUTS - 1)
+                if (output_index == OUTPUTS)
                 begin
                     increment_timestep = 1;
                     ns = CHECK_END;
@@ -572,7 +569,7 @@ module snn #(
             end
 
             // if we have done all timesteps, we are done
-            CHECK_END:
+            CHECK_END: // E
             begin
                 if (curr_timestep == total_timesteps)
                 begin
@@ -582,7 +579,9 @@ module snn #(
                 end
                 else
                 begin
-                    ns = GEN_SPIKE;     
+                    image_addr_o = 0;
+                    output_index = 0;
+                    ns = LOAD_PIXEL;
                 end
             end
         endcase
