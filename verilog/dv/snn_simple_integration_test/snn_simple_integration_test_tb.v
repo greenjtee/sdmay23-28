@@ -44,7 +44,7 @@ module snn_simple_integration_test_tb;
 		$dumpfile("snn_simple_integration_test.vcd");
 		$dumpvars(0, snn_simple_integration_test_tb);
 
-		// initialize image
+		// initialize image, this is a 1
 dut.image.mem[0] = 8'h00;
 dut.image.mem[1] = 8'h00;
 dut.image.mem[2] = 8'h00;
