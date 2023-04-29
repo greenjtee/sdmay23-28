@@ -29,15 +29,17 @@ module neuron (
 
     wire signed [8:0] extended_weight;
     wire signed [8:0] extended_vth;
+    wire signed [8:0] extended_beta;
 
     wire signed [2*8-1:0] v_mem_mult;
 
     assign extended_weight = {weight[7], weight};
     assign extended_vth = {1'b0, v_th};
+    assign extended_beta = {1'b0, beta};
     
     //basic functions for decay and addition of weight
-    assign v_mem_mult = (v_mem_in * beta);
-    assign v_mem_decayed = v_mem_in; // v_mem_mult >>> 8;
+    assign v_mem_mult = (v_mem_in * extended_beta);
+    assign v_mem_decayed = v_mem_mult >>> 8;
     assign v_mem_added = v_mem_in + extended_weight;
     assign v_mem_subtracted = v_mem_decayed - extended_vth;
 
