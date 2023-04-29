@@ -26,23 +26,31 @@ module neuron #(
 );
 
     wire [SIZE-1:0] v_mem_decayed;
-    wire [SIZE-1:0] v_mem_added;
+    wire [SIZE:0] v_mem_added;
+
+    wire overflow;
+    wire underflow;
+
+    wire [SIZE-1:0] intermediate;
 
     wire [2*SIZE-1:0] v_mem_mult;
-    wire overflow;
     
     //basic functions for decay and addition of weight
     assign v_mem_mult = (v_mem_in * beta);
     assign v_mem_decayed = v_mem_mult >> 8;
-    assign v_mem_added = v_mem_in + weight;
+    assign v_mem_added = weight[7] ? (v_mem_in - weight[6:0]) : (v_mem_in + weight[6:0]);
 
-    assign overflow = v_mem_added < v_mem_in;
+    assign overflow = weight[7] ? (v_mem_in < weight[6:0]) : 0; // overflow if carry into last bit
+    assign underflow = weight[7] ? (v_mem_in < weight[6:0]) : 0; // underflow if v_mem_in < weight[6:0] and we did subtraction
 
     //assign a spike if we pass our threshold voltage
-    assign spike = overflow ? 1 : (v_mem_decayed > v_th ? 1 : 0);
+    assign spike = v_mem_decayed > v_th ? 1 : 0;
 
-    assign v_mem_out = function_sel ? (spike ? 0 : v_mem_decayed) : 
-                                      (v_mem_added);
+    assign intermediate = overflow ? 8'h7F : ((function_sel ? (spike ? 0 : v_mem_decayed) : 
+                                      (v_mem_added)));
+
+    assign v_mem_out = underflow ? 8'h00 : intermediate;
+
 endmodule
 
 `default_nettype wire

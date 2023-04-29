@@ -146,38 +146,38 @@ module snn #(
     reg inference_done;
 
     // output neuron specific registers
-    reg [7:0] output_vmem [OUTPUTS-1:0];
-    reg [7:0] output_spike [OUTPUTS-1:0];
+    reg [15:0] output_vmem [OUTPUTS-1:0];
+    reg [15:0] output_spike [OUTPUTS-1:0];
 
-    reg [OUTPUTS-1:0] output_vmem_index;
-    reg [OUTPUTS-1:0] output_spike_index;
+    reg [7:0] output_vmem_index;
+    reg [7:0] output_spike_index;
     reg [9:0] spiking_neuron_index;
 
     reg output_weight_store;
 
     // wires for easy viewing
-    wire [7:0] output_spike_count_0 = output_spike[0];
-    wire [7:0] output_spike_count_1 = output_spike[1];
-    wire [7:0] output_spike_count_2 = output_spike[2];
-    wire [7:0] output_spike_count_3 = output_spike[3];
-    wire [7:0] output_spike_count_4 = output_spike[4];
-    wire [7:0] output_spike_count_5 = output_spike[5];
-    wire [7:0] output_spike_count_6 = output_spike[6];
-    wire [7:0] output_spike_count_7 = output_spike[7];
-    wire [7:0] output_spike_count_8 = output_spike[8];
-    wire [7:0] output_spike_count_9 = output_spike[9];
+    wire [15:0] output_spike_count_0 = output_spike[0];
+    wire [15:0] output_spike_count_1 = output_spike[1];
+    wire [15:0] output_spike_count_2 = output_spike[2];
+    wire [15:0] output_spike_count_3 = output_spike[3];
+    wire [15:0] output_spike_count_4 = output_spike[4];
+    wire [15:0] output_spike_count_5 = output_spike[5];
+    wire [15:0] output_spike_count_6 = output_spike[6];
+    wire [15:0] output_spike_count_7 = output_spike[7];
+    wire [15:0] output_spike_count_8 = output_spike[8];
+    wire [15:0] output_spike_count_9 = output_spike[9];
 
     // wires for easy viewing
-    wire [7:0] output_vmem_0 = output_vmem[0];
-    wire [7:0] output_vmem_1 = output_vmem[1];
-    wire [7:0] output_vmem_2 = output_vmem[2];
-    wire [7:0] output_vmem_3 = output_vmem[3];
-    wire [7:0] output_vmem_4 = output_vmem[4];
-    wire [7:0] output_vmem_5 = output_vmem[5];
-    wire [7:0] output_vmem_6 = output_vmem[6];
-    wire [7:0] output_vmem_7 = output_vmem[7];
-    wire [7:0] output_vmem_8 = output_vmem[8];
-    wire [7:0] output_vmem_9 = output_vmem[9];
+    wire [15:0] output_vmem_0 = output_vmem[0];
+    wire [15:0] output_vmem_1 = output_vmem[1];
+    wire [15:0] output_vmem_2 = output_vmem[2];
+    wire [15:0] output_vmem_3 = output_vmem[3];
+    wire [15:0] output_vmem_4 = output_vmem[4];
+    wire [15:0] output_vmem_5 = output_vmem[5];
+    wire [15:0] output_vmem_6 = output_vmem[6];
+    wire [15:0] output_vmem_7 = output_vmem[7];
+    wire [15:0] output_vmem_8 = output_vmem[8];
+    wire [15:0] output_vmem_9 = output_vmem[9];
     
     integer i;
 
@@ -334,7 +334,7 @@ module snn #(
             // enable signal for loading vmem register
             if (vmem_store)
             begin
-                output_vmem[output_vmem_index] <= neuron_vmem_reg;
+                output_vmem[output_vmem_index] <= neuron_vmem_o;
             end
             
             // enable signal for loading spike register
@@ -393,6 +393,8 @@ module snn #(
         // reset_pixel_index = 0;
 
         // reset_output_index = 0;
+
+        spike_store = 0;
 
         increment_output_index = 0;
 
@@ -515,12 +517,12 @@ module snn #(
                 ns = LOAD_WEIGHT_2;
             end
 
-            LOAD_WEIGHT_2:
+            LOAD_WEIGHT_2: // 9
             begin
-                increment_output_index = 1;
                 output_weight_store = 1;
+                increment_output_index = 1;
+                neuron_op = NEURON_INTEGRATE;
 
-                // ns = LOAD_VMEM;
                 ns = OPSTORE;
             end
 
@@ -533,7 +535,6 @@ module snn #(
 
                 if (output_index == OUTPUTS)                                            // if we have processed all output neurons, go to next stage
                 begin
-                    // reset_output_index = 1;
                     output_index = 0;
                     ns                 = LOAD_SPIKE;
                 end
