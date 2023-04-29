@@ -128,12 +128,12 @@ module snn #(
 
     // current value signals
     reg [7:0] curr_weight;
-    reg [7:0] curr_vmem;
+    reg [8:0] curr_vmem;
 
     // neuron module signals
     wire neuron_spike_o;
-    reg [7:0] neuron_vmem_reg;
-    wire [7:0] neuron_vmem_o;
+    reg [8:0] neuron_vmem_reg;
+    wire [8:0] neuron_vmem_o;
 
     reg neuron_op;
 
@@ -341,6 +341,7 @@ module snn #(
             if (spike_store)
             begin
                 output_spike[output_spike_index] <= output_spike[output_spike_index] + 1;
+                output_vmem[output_spike_index] <= 0;
             end
             
             // enable signal for incrementing timestep
