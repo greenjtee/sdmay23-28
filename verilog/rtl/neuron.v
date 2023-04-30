@@ -13,32 +13,44 @@
 
 `default_nettype none
 
-module neuron #(
-    parameter WEIGHT_SIZE = 8,
-    parameter V_MEM_SIZE = 8,
-    parameter B_SIZE = 8
-)(
-    input [WEIGHT_SIZE-1:0] weight,
-    input [V_MEM_SIZE-1:0] v_mem_in,
-    input [B_SIZE-1:0] beta,
+module neuron (
+    input signed [7:0] weight,
+    input signed [8:0] v_mem_in,
+    input [7:0] beta,
     input function_sel,
-    input [V_MEM_SIZE-1:0] v_th,
+    input [7:0] v_th,
     output spike,
-    output [V_MEM_SIZE-1:0] v_mem_out
+    output signed [8:0] v_mem_out
 );
 
-    wire [V_MEM_SIZE-1:0] v_mem_decayed;
-    wire [V_MEM_SIZE-1:0] v_mem_added;
+    wire signed [8:0] v_mem_decayed;
+    wire signed [8:0] v_mem_added;
+    wire signed [8:0] v_mem_subtracted;
+
+    wire signed [8:0] extended_weight;
+    wire signed [8:0] extended_vth;
+    wire signed [8:0] extended_beta;
+
+    wire signed [2*8-1:0] v_mem_mult;
+
+    assign extended_weight = {weight[7], weight};
+    assign extended_vth = {1'b0, v_th};
+    assign extended_beta = {1'b0, beta};
     
     //basic functions for decay and addition of weight
-    assign v_mem_decayed = v_mem_in * beta;
-    assign v_mem_added = v_mem_in + weight;
+    assign v_mem_mult = (v_mem_in * extended_beta);
+    assign v_mem_decayed = v_mem_mult >>> 8;
+    assign v_mem_added = v_mem_in + extended_weight;
+    assign v_mem_subtracted = v_mem_decayed - extended_vth;
 
     //assign a spike if we pass our threshold voltage
-    assign spike = v_mem_decayed > v_th ? 1 : 0;
+    assign spike = ~v_mem_subtracted[8] ? 1 : 0;
 
     assign v_mem_out = function_sel ? (spike ? 0 : v_mem_decayed) : 
                                       (v_mem_added);
+
+    // assign v_mem_out = underflow ? 8'h00 : intermediate;
+
 endmodule
 
 `default_nettype wire

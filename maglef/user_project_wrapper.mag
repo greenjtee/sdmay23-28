@@ -1,7 +1,7 @@
 magic
 tech sky130A
 magscale 1 2
-timestamp 1679410811
+timestamp 1682807819
 << obsli1 >>
 rect 13104 5159 570808 352809
 << obsm1 >>
@@ -1313,7 +1313,7 @@ rect 192954 -7654 193574 711590
 rect 196674 -7654 197294 711590
 rect 200394 354900 201014 711590
 rect 204114 -7654 204734 711590
-rect 207834 12233 208454 711590
+rect 207834 -7654 208454 711590
 rect 217794 -7654 218414 711590
 rect 221514 -7654 222134 711590
 rect 225234 -7654 225854 711590
@@ -1444,9 +1444,8 @@ rect 182494 5128 189154 352840
 rect 189934 5128 192874 352840
 rect 193654 5128 196594 352840
 rect 197374 5128 204034 352840
-rect 204814 12153 207754 352840
-rect 208534 12153 217714 352840
-rect 204814 5128 217714 12153
+rect 204814 5128 207754 352840
+rect 208534 5128 217714 352840
 rect 218494 5128 221434 352840
 rect 222214 5128 225154 352840
 rect 225934 5128 228874 352840
@@ -3173,7 +3172,7 @@ rlabel metal4 s 135834 -7654 136454 711590 6 vssa2
 port 537 nsew ground bidirectional
 rlabel metal4 s 171834 -7654 172454 711590 6 vssa2
 port 537 nsew ground bidirectional
-rlabel metal4 s 207834 12233 208454 711590 6 vssa2
+rlabel metal4 s 207834 -7654 208454 711590 6 vssa2
 port 537 nsew ground bidirectional
 rlabel metal4 s 243834 -7654 244454 711590 6 vssa2
 port 537 nsew ground bidirectional
@@ -3611,8 +3610,8 @@ port 645 nsew signal input
 string FIXED_BBOX 0 0 584000 704000
 string LEFclass BLOCK
 string LEFview TRUE
-string GDS_END 54024364
-string GDS_FILE /home/tjgreen/git/sdmay23-28/openlane/user_project_wrapper/runs/23_03_21_09_56/results/signoff/user_project_wrapper.magic.gds
-string GDS_START 52432564
+string GDS_END 53335792
+string GDS_FILE /home/tjgreen/git/sdmay23-28/openlane/user_project_wrapper/runs/23_04_29_17_33/results/signoff/user_project_wrapper.magic.gds
+string GDS_START 51731512
 << end >>
 

@@ -4,4 +4,5 @@
 -v $(USER_PROJECT_VERILOG)/rtl/snn.v
 -v $(USER_PROJECT_VERILOG)/rtl/neuron.v
 -v $(USER_PROJECT_VERILOG)/rtl/queue.v
+-v $(USER_PROJECT_VERILOG)/rtl/rand_gen.v
 -v $(PDK_ROOT)/sky130A/libs.ref/sky130_sram_macros/verilog/sky130_sram_1kbyte_1rw1r_8x1024_8.v
