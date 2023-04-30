@@ -13,7 +13,6 @@ build:
   script:
     - apk update
     - apk add git make python3 py3-pip
-    - cd caravel_user_project
     - source ./setup.sh
     - make setup
     - make verify-snn_simple_integration_test-rtl
