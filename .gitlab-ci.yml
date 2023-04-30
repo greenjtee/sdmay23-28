@@ -17,6 +17,8 @@ build:
     - cd caravel_user_project
     - source ./setup.sh
     - make setup
+    - make verify-snn_simple_integration_test-rtl
     - make snn
     - make user_project_wrapper
-    - make verify-snn_simple_integration_test-rtl
+    - make prechecks
+    - make run-prechecks
